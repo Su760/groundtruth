@@ -55,10 +55,12 @@ def run_synthesizer(state: dict) -> dict:
     ) or "No non-English source content analyzed."
 
     propaganda_summary = "\n".join(
-        f"- {p.get('source_name', 'Unknown')}: [{', '.join(p.get('techniques', []))}]\n"
+        f"- {p.get('source_name', 'Unknown')}: "
+        f"PRIMARY: [{', '.join(p.get('primary_techniques', []))}] | "
+        f"SECONDARY: [{', '.join(p.get('secondary_techniques', []))}]\n"
         f"  {chr(10).join('  ' + ex for ex in p.get('examples', []))}"
         for p in propaganda_report
-        if p.get("techniques")
+        if p.get("primary_techniques") or p.get("secondary_techniques")
     )
 
     prompt = f"""You are a senior investigative journalist writing a structured media analysis report.
