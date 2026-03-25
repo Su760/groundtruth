@@ -17,6 +17,7 @@ def run_synthesizer(state: dict) -> dict:
     perspective_analysis = state["perspective_analysis"]
     propaganda_report = state["propaganda_report"]
     historical_context = state.get("historical_context", {})
+    translation_analysis = state.get("translation_analysis", {})
 
     timeline_bullets = "\n".join(
         f"  - {e}" for e in historical_context.get("timeline", [])
@@ -43,6 +44,16 @@ def run_synthesizer(state: dict) -> dict:
         for region, data in perspective_analysis.items()
     )
 
+    translation_summary = "\n\n".join(
+        f"**{region}** (original: {data.get('original_language', 'unknown')})\n"
+        f"Naming: {data.get('naming_conventions', 'N/A')}\n"
+        f"Emphasis: {data.get('emphasis_patterns', 'N/A')}\n"
+        f"Omissions: {data.get('omission_patterns', 'N/A')}\n"
+        f"Voice: {data.get('voice_patterns', 'N/A')}\n"
+        f"Key phrases: {'; '.join(data.get('key_phrase_differences', []))}"
+        for region, data in translation_analysis.items()
+    ) or "No non-English source content analyzed."
+
     propaganda_summary = "\n".join(
         f"- {p.get('source_name', 'Unknown')}: [{', '.join(p.get('techniques', []))}]\n"
         f"  {chr(10).join('  ' + ex for ex in p.get('examples', []))}"
@@ -57,6 +68,9 @@ Confidence Score: {confidence_score}/1.0 (based on source diversity and cross-ve
 
 HISTORICAL CONTEXT:
 {hist_summary}
+
+TRANSLATION LAYER ANALYSIS (original-language source text):
+{translation_summary}
 
 === ANALYSIS DATA ===
 
@@ -85,6 +99,9 @@ Write clearly for a general reader who wants to understand media manipulation.
 
 ## Historical Context
 (Summarize the timeline of key events, root causes, why this matters now, and who the historical players are — draw from the HISTORICAL CONTEXT data above)
+
+## Translation Layer
+(For each non-English bloc where source text was retrieved: naming conventions, what they emphasize vs omit, voice/agency patterns, key phrase differences vs English coverage)
 
 ## What Happened
 (2-3 paragraphs summarizing only confirmed facts)

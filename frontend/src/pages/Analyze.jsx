@@ -6,6 +6,7 @@ const AGENT_ORDER = [
   { key: 'planner', label: 'Planner' },
   { key: 'researcher', label: 'Researcher' },
   { key: 'context_historian', label: 'Context Historian' },
+  { key: 'translation_layer', label: 'Translation Layer' },
   { key: 'bias_detector', label: 'Bias Detector' },
   { key: 'perspective_analyst', label: 'Perspective Analyst' },
   { key: 'propaganda_mapper', label: 'Propaganda Mapper' },

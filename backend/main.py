@@ -10,6 +10,7 @@ from backend.state import GroundTruthState
 from backend.agents.planner import run_planner
 from backend.agents.researcher import run_researcher
 from backend.agents.context_historian import run_context_historian
+from backend.agents.translation_layer import run_translation_layer
 from backend.agents.bias_detector import run_bias_detector
 from backend.agents.perspective_analyst import run_perspective_analyst
 from backend.agents.propaganda_mapper import run_propaganda_mapper
@@ -23,6 +24,7 @@ def build_graph():
     graph.add_node("planner", run_planner)
     graph.add_node("researcher", run_researcher)
     graph.add_node("context_historian", run_context_historian)
+    graph.add_node("translation_layer", run_translation_layer)
     graph.add_node("bias_detector", run_bias_detector)
     graph.add_node("perspective_analyst", run_perspective_analyst)
     graph.add_node("propaganda_mapper", run_propaganda_mapper)
@@ -32,7 +34,8 @@ def build_graph():
     graph.set_entry_point("planner")
     graph.add_edge("planner", "researcher")
     graph.add_edge("researcher", "context_historian")
-    graph.add_edge("context_historian", "bias_detector")
+    graph.add_edge("context_historian", "translation_layer")
+    graph.add_edge("translation_layer", "bias_detector")
     graph.add_edge("bias_detector", "perspective_analyst")
     graph.add_edge("perspective_analyst", "propaganda_mapper")
     graph.add_edge("propaganda_mapper", "fact_checker")
@@ -64,6 +67,7 @@ def main():
         "angles": [],
         "raw_research": [],
         "historical_context": {},
+        "translation_analysis": {},
         "bias_report": [],
         "perspective_analysis": {},
         "propaganda_report": [],
