@@ -18,6 +18,53 @@ def run_synthesizer(state: dict) -> dict:
     propaganda_report = state["propaganda_report"]
     historical_context = state.get("historical_context", {})
     translation_analysis = state.get("translation_analysis", {})
+    user_profile = state.get("user_profile", {})
+
+    expertise = user_profile.get("expertise_level", "intermediate")
+    tone = user_profile.get("tone", "comparative")
+    depth = user_profile.get("depth", "medium")
+    emphasized_blocs = user_profile.get("emphasized_blocs", [])
+    goal = user_profile.get("goal", "understand")
+
+    tone_instruction = {
+        "explanatory": "Use plain language. Define geopolitical terms when you introduce them. Assume the reader is smart but new to this topic. Use analogies where helpful.",
+        "analytical": "Use precise, technical language. Present evidence before conclusions. Minimize editorializing — let the data speak.",
+        "comparative": "Structure the report around contrasts between blocs. Help the reader see the same event through multiple lenses simultaneously.",
+    }.get(tone, "Write clearly for a general audience.")
+
+    depth_instruction = {
+        "shallow": "Keep the report concise. Focus on what's happening now. One short paragraph per section.",
+        "medium": "Provide thorough coverage. Include relevant context but stay focused on the current situation.",
+        "deep": "Be comprehensive. Expand historical context and analytical depth. Do not truncate any section.",
+    }.get(depth, "Provide thorough coverage.")
+
+    expertise_instruction = {
+        "beginner": "Avoid jargon. When you must use terms like 'proxy war' or 'hegemon', briefly explain them in parentheses.",
+        "intermediate": "Assume familiarity with world news but not specialist knowledge.",
+        "advanced": "Write at the level of a foreign policy professional. No need to define standard geopolitical terms.",
+    }.get(expertise, "Assume general news literacy.")
+
+    goal_instruction = {
+        "fact-check": "Where claims from different blocs contradict each other, flag the contradiction explicitly and note what evidence exists for each position.",
+        "understand": "Prioritize explaining WHY each actor believes what they believe. Motivations matter more than facts here.",
+        "challenge-self": "Actively present the strongest version of perspectives the reader is likely to find uncomfortable. Steel-man minority viewpoints.",
+        "research": "Include specific claims, named sources, dates, and figures where available. Write as if this will be cited.",
+    }.get(goal, "")
+
+    emphasis_instruction = (
+        f"The reader has indicated they want extra depth on these power blocs: {', '.join(emphasized_blocs)}. "
+        "Give these blocs more analytical space in the Power Bloc Narratives section — expand their framing analysis, structural interests, and key phrase differences."
+        if emphasized_blocs else ""
+    )
+
+    profile_context = "\n".join(filter(None, [
+        "USER PROFILE — adjust your report accordingly:",
+        tone_instruction,
+        depth_instruction,
+        expertise_instruction,
+        goal_instruction,
+        emphasis_instruction,
+    ]))
 
     timeline_bullets = "\n".join(
         f"  - {e}" for e in historical_context.get("timeline", [])
@@ -67,6 +114,9 @@ def run_synthesizer(state: dict) -> dict:
 
 Topic: "{topic}"
 Confidence Score: {confidence_score}/1.0 (based on source diversity and cross-verification)
+
+# Personalization layer — adjusts tone, depth, emphasis
+{profile_context}
 
 HISTORICAL CONTEXT:
 {hist_summary}

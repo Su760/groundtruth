@@ -68,6 +68,7 @@ def main():
         "raw_research": [],
         "historical_context": {},
         "translation_analysis": {},
+        "user_profile": {},
         "bias_report": [],
         "perspective_analysis": {},
         "propaganda_report": [],

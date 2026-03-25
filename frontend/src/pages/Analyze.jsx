@@ -64,6 +64,11 @@ export default function Analyze() {
   const navigate = useNavigate()
   const topic = searchParams.get('topic') || ''
 
+  // Read profile once — not reactive, profile doesn't change during analysis
+  const profile = (() => {
+    try { return JSON.parse(localStorage.getItem('gt_user_profile')) } catch { return null }
+  })()
+
   const [agentStatuses, setAgentStatuses] = useState(() =>
     Object.fromEntries(AGENT_ORDER.map((a) => [a.key, 'pending']))
   )
@@ -86,7 +91,7 @@ export default function Analyze() {
         const res = await fetch('http://localhost:8000/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ topic }),
+          body: JSON.stringify({ topic, profile }),
           signal: controller.signal,
         })
 

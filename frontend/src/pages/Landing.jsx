@@ -35,6 +35,9 @@ export default function Landing() {
   const [headline] = useState(
     () => SAMPLE_HEADLINES[Math.floor(Math.random() * SAMPLE_HEADLINES.length)]
   )
+  const [profile] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('gt_user_profile')) } catch { return null }
+  })
   const navigate = useNavigate()
 
   function handleSubmit(e) {
@@ -183,6 +186,38 @@ export default function Landing() {
         <p className="mt-4 text-xs" style={{ color: '#333' }}>
           e.g. "Ukraine war", "Taiwan strait tensions", "Iran nuclear deal"
         </p>
+
+        {/* Profile nudge / badge */}
+        {profile ? (
+          <p className="mt-3 text-xs" style={{ color: '#555' }}>
+            ✓ Profile set — {profile.expertise_level}
+            {' · '}
+            <button
+              type="button"
+              onClick={() => navigate('/quiz')}
+              className="underline transition-colors"
+              style={{ color: '#444', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              onMouseEnter={(e) => (e.target.style.color = '#666')}
+              onMouseLeave={(e) => (e.target.style.color = '#444')}
+            >
+              retake quiz
+            </button>
+          </p>
+        ) : (
+          <p className="mt-3 text-xs" style={{ color: '#444' }}>
+            Get personalized reports →{' '}
+            <button
+              type="button"
+              onClick={() => navigate('/quiz')}
+              className="transition-colors"
+              style={{ color: '#666', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+              onMouseEnter={(e) => (e.target.style.color = '#888')}
+              onMouseLeave={(e) => (e.target.style.color = '#666')}
+            >
+              Take the 1-min quiz
+            </button>
+          </p>
+        )}
       </div>
 
       {/* Feature cards */}

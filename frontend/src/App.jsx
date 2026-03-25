@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Landing from './pages/Landing'
 import Analyze from './pages/Analyze'
 import Reports from './pages/Reports'
+import Quiz from './pages/Quiz'
 
 export default function App() {
   return (
@@ -10,6 +11,7 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/analyze" element={<Analyze />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/quiz" element={<Quiz />} />
       </Routes>
     </BrowserRouter>
   )

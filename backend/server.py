@@ -42,6 +42,7 @@ AGENT_LABELS = {
 
 class AnalyzeRequest(BaseModel):
     topic: str
+    profile: dict | None = None
 
 
 @app.post("/analyze")
@@ -56,6 +57,7 @@ async def analyze(req: AnalyzeRequest):
             "raw_research": [],
             "historical_context": {},
             "translation_analysis": {},
+            "user_profile": req.profile or {},
             "bias_report": [],
             "perspective_analysis": {},
             "propaganda_report": [],
