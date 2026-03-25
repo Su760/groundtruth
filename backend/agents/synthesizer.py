@@ -35,11 +35,11 @@ def run_synthesizer(state: dict) -> dict:
     )
 
     perspective_summary = "\n\n".join(
-        f"**{region}**\n"
-        f"Framing: {data.get('framing', 'N/A')}\n"
-        f"Why: {data.get('why', 'N/A')}\n"
-        f"Interests served: {data.get('interests_served', 'N/A')}\n"
-        f"Propaganda vs perspective: {data.get('propaganda_vs_perspective', 'N/A')}"
+        f"**{region} Power Bloc**\n"
+        f"Narrative: {data.get('narrative_frame', 'N/A')}\n"
+        f"Why they frame it this way: {data.get('structural_interests', 'N/A')}\n"
+        f"What they gain: {data.get('what_this_bloc_gains', 'N/A')}\n"
+        f"Coordinated vs organic: {data.get('deliberate_vs_organic', 'N/A')}"
         for region, data in perspective_analysis.items()
     )
 
@@ -89,8 +89,8 @@ Write clearly for a general reader who wants to understand media manipulation.
 ## What Happened
 (2-3 paragraphs summarizing only confirmed facts)
 
-## How Different Powers Are Framing This
-(For each region with data: what they say, WHY they say it based on interests, and what that means for the reader)
+## Power Bloc Narratives
+(For each power bloc with data: their narrative frame, WHY based on structural geopolitical interests, what they gain from this narrative, and whether it appears coordinated or organic)
 
 ## Propaganda Techniques Detected
 (Per source that had detections: technique used and specific example from their coverage)

@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from backend.main import build_graph
 
 REPORTS_DIR = Path(__file__).parent.parent / "reports"
-ALL_REGIONS = {"China", "Middle East", "Europe", "Russia", "US/Western", "Wire Services"}
+ALL_REGIONS = {"China", "Russia", "Middle East", "Europe", "Wire Services", "US/Western", "India", "Global South"}
 
 app = FastAPI(title="GroundTruth API")
 

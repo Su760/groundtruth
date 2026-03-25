@@ -311,8 +311,8 @@ export default function Analyze() {
                     fontFamily: 'Inter, sans-serif',
                   }}
                 >
-                  ⚠ No coverage found for: {missingRegions.join(', ')} — results may reflect
-                  limited perspectives.
+                  ⚠ No coverage found for: {missingRegions.join(', ')} — analysis may reflect
+                  incomplete power bloc perspectives.
                 </div>
               )}
 

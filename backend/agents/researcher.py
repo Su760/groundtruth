@@ -2,12 +2,14 @@ from langchain_community.tools import TavilySearchResults
 
 
 SEARCH_CONFIGS = [
-    ("{topic} CGTN OR \"Global Times\"",                    "CGTN/Global Times", "China"),
-    ("{topic} Al Jazeera",                                  "Al Jazeera",        "Middle East"),
-    ("{topic} BBC OR \"Deutsche Welle\"",                   "BBC/DW",            "Europe"),
-    ("{topic} RT",                                          "RT",                "Russia"),
-    ("{topic}",                                             "General",           "US/Western"),
-    ("{topic} site:reuters.com OR site:apnews.com",         "Wire Services",     "Wire Services"),
+    ("{topic} CGTN OR 'Global Times' OR Xinhua",                    "China (State Media)", "China"),
+    ("{topic} RT OR TASS OR Sputnik",                               "Russia (State Media)", "Russia"),
+    ("{topic} Al Jazeera OR 'Middle East Eye'",                     "Middle East",          "Middle East"),
+    ("{topic} BBC OR 'Deutsche Welle' OR Euronews",                 "Europe",               "Europe"),
+    ("{topic} Reuters OR 'AP News' OR AFP",                         "Wire Services",        "Wire Services"),
+    ("{topic} CNN OR 'New York Times' OR 'Washington Post'",        "US/Western",           "US/Western"),
+    ("{topic} 'The Hindu' OR NDTV OR 'Times of India'",             "India",                "India"),
+    ("{topic} 'Al Jazeera English' OR Telesur OR 'Daily Maverick'", "Global South",         "Global South"),
 ]
 
 
