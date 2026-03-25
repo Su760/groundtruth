@@ -30,6 +30,7 @@ app.add_middleware(
 AGENT_LABELS = {
     "planner": "Planner",
     "researcher": "Researcher",
+    "context_historian": "Context Historian",
     "bias_detector": "Bias Detector",
     "perspective_analyst": "Perspective Analyst",
     "propaganda_mapper": "Propaganda Mapper",
@@ -52,6 +53,7 @@ async def analyze(req: AnalyzeRequest):
             "topic": req.topic,
             "angles": [],
             "raw_research": [],
+            "historical_context": {},
             "bias_report": [],
             "perspective_analysis": {},
             "propaganda_report": [],

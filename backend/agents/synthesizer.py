@@ -16,6 +16,17 @@ def run_synthesizer(state: dict) -> dict:
     bias_report = state["bias_report"]
     perspective_analysis = state["perspective_analysis"]
     propaganda_report = state["propaganda_report"]
+    historical_context = state.get("historical_context", {})
+
+    timeline_bullets = "\n".join(
+        f"  - {e}" for e in historical_context.get("timeline", [])
+    )
+    hist_summary = (
+        f"Timeline:\n{timeline_bullets}\n"
+        f"Root causes: {historical_context.get('root_causes', 'N/A')}\n"
+        f"Why it matters now: {historical_context.get('why_it_matters_now', 'N/A')}\n"
+        f"Key historical players: {historical_context.get('key_players_history', 'N/A')}"
+    )
 
     bias_summary = "\n".join(
         f"- {b.get('source_name', 'Unknown')}: bias_score={b.get('bias_score', 'N/A')}/10 | "
@@ -44,6 +55,9 @@ def run_synthesizer(state: dict) -> dict:
 Topic: "{topic}"
 Confidence Score: {confidence_score}/1.0 (based on source diversity and cross-verification)
 
+HISTORICAL CONTEXT:
+{hist_summary}
+
 === ANALYSIS DATA ===
 
 CONFIRMED FACTS (verified across multiple independent sources):
@@ -68,6 +82,9 @@ PROPAGANDA TECHNIQUES DETECTED:
 Write a structured markdown report using EXACTLY these section headers in this order.
 Base every claim on the data above. Do not introduce facts not present in the analysis data.
 Write clearly for a general reader who wants to understand media manipulation.
+
+## Historical Context
+(Summarize the timeline of key events, root causes, why this matters now, and who the historical players are — draw from the HISTORICAL CONTEXT data above)
 
 ## What Happened
 (2-3 paragraphs summarizing only confirmed facts)
