@@ -27,6 +27,12 @@ const FEATURES = [
     description:
       'Identifies specific rhetorical techniques — whataboutism, appeal to fear, false equivalence — with textual evidence from each outlet.',
   },
+  {
+    title: 'Knowledge Quizzes',
+    description:
+      'Test your understanding of geopolitical topics with AI-generated quizzes. From the Taiwan Strait to the Iran nuclear deal — learn by doing.',
+    href: '/learn',
+  },
 ]
 
 export default function Landing() {
@@ -49,6 +55,32 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#0a0a0a' }}>
+      {/* Top nav */}
+      <div
+        className="flex items-center justify-end px-6 py-3"
+        style={{ borderBottom: '1px solid #141414' }}
+      >
+        <button
+          onClick={() => navigate('/learn')}
+          className="text-xs transition-colors"
+          style={{ color: '#444', fontFamily: 'JetBrains Mono, monospace' }}
+          onMouseEnter={(e) => (e.target.style.color = '#666')}
+          onMouseLeave={(e) => (e.target.style.color = '#444')}
+        >
+          Learn
+        </button>
+        <span className="mx-3 text-xs" style={{ color: '#222' }}>·</span>
+        <button
+          onClick={() => navigate('/reports')}
+          className="text-xs transition-colors"
+          style={{ color: '#444', fontFamily: 'JetBrains Mono, monospace' }}
+          onMouseEnter={(e) => (e.target.style.color = '#666')}
+          onMouseLeave={(e) => (e.target.style.color = '#444')}
+        >
+          History
+        </button>
+      </div>
+
       {/* Hero */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-24">
         {/* Brand */}
@@ -222,12 +254,23 @@ export default function Landing() {
 
       {/* Feature cards */}
       <div className="px-6 pb-16">
-        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {FEATURES.map((f) => (
             <div
               key={f.title}
-              className="p-5 rounded"
-              style={{ background: '#111111', border: '1px solid #1a1a1a' }}
+              className="p-5 rounded transition-all"
+              style={{
+                background: '#111111',
+                border: '1px solid #1a1a1a',
+                cursor: f.href ? 'pointer' : 'default',
+              }}
+              onClick={f.href ? () => navigate(f.href) : undefined}
+              onMouseEnter={(e) => {
+                if (f.href) e.currentTarget.style.borderColor = '#2a2a2a'
+              }}
+              onMouseLeave={(e) => {
+                if (f.href) e.currentTarget.style.borderColor = '#1a1a1a'
+              }}
             >
               <div
                 className="text-xs font-medium mb-2 tracking-widest uppercase"

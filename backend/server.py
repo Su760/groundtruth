@@ -1,4 +1,5 @@
 import json
+import re
 import asyncio
 import threading
 from datetime import datetime, timezone
@@ -12,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 
+from langchain_groq import ChatGroq
 from backend.main import build_graph
 
 REPORTS_DIR = Path(__file__).parent.parent / "reports"
@@ -43,6 +45,79 @@ AGENT_LABELS = {
 class AnalyzeRequest(BaseModel):
     topic: str
     profile: dict | None = None
+
+
+class LearnRequest(BaseModel):
+    topic: str
+    report_content: str | None = None
+
+
+@app.post("/learn/generate")
+async def generate_quiz(req: LearnRequest):
+    def _generate():
+        llm = ChatGroq(model="llama-3.3-70b-versatile")
+
+        if req.report_content:
+            prompt = f"""You are a quiz generator. Create 6 multiple-choice questions to test understanding of this GroundTruth analysis report.
+
+REPORT CONTENT:
+{req.report_content[:4000]}
+
+Rules:
+- Questions must be answerable from the report content, not general knowledge
+- Each question tests comprehension of a specific claim, comparison, or insight in the report
+- Wrong answers (distractors) must be plausible but clearly incorrect to someone who read the report
+- Include a 1-sentence explanation for the correct answer
+
+Return ONLY valid JSON, no markdown fences:
+{{
+  "topic": "{req.topic}",
+  "source": "report",
+  "questions": [
+    {{
+      "question": "<question text>",
+      "options": ["<A>", "<B>", "<C>", "<D>"],
+      "correct_index": 0,
+      "explanation": "<1 sentence why this is correct>"
+    }}
+  ]
+}}"""
+        else:
+            prompt = f"""You are a quiz generator specializing in geopolitics and international relations. Create 6 multiple-choice questions about: "{req.topic}"
+
+Rules:
+- Questions should test real understanding, not just trivia
+- Cover: historical context, key actors/interests, current dynamics, common misconceptions
+- Each question should have 4 options (A-D)
+- Wrong answers must be plausible but clearly incorrect
+- Include a 1-sentence explanation for the correct answer
+- Difficulty: intermediate (assumes news literacy, not expert knowledge)
+
+Return ONLY valid JSON, no markdown fences:
+{{
+  "topic": "{req.topic}",
+  "source": "general",
+  "questions": [
+    {{
+      "question": "<question text>",
+      "options": ["<A>", "<B>", "<C>", "<D>"],
+      "correct_index": 0,
+      "explanation": "<1 sentence why this is correct>"
+    }}
+  ]
+}}"""
+
+        raw = llm.invoke(prompt).content
+        cleaned = re.sub(r"^```(?:json)?\s*", "", raw.strip(), flags=re.MULTILINE)
+        cleaned = re.sub(r"\s*```$", "", cleaned.strip(), flags=re.MULTILINE)
+        try:
+            return json.loads(cleaned.strip())
+        except Exception:
+            return {"error": "Failed to parse quiz", "topic": req.topic, "questions": []}
+
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(None, _generate)
+    return result
 
 
 @app.post("/analyze")

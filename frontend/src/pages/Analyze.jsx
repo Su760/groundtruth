@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
+import QuizRunner from '../components/QuizRunner'
 
 const AGENT_ORDER = [
   { key: 'planner', label: 'Planner' },
@@ -77,6 +78,28 @@ export default function Analyze() {
   const [missingRegions, setMissingRegions] = useState([])
   const [error, setError] = useState(null)
   const [isRunning, setIsRunning] = useState(true)
+  const [quiz, setQuiz] = useState(null)
+  const [quizLoading, setQuizLoading] = useState(false)
+  const [quizError, setQuizError] = useState(null)
+
+  function handleGenerateQuiz() {
+    setQuizLoading(true)
+    setQuizError(null)
+    fetch('http://localhost:8000/learn/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic, report_content: report }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setQuiz(data)
+        setQuizLoading(false)
+      })
+      .catch((e) => {
+        setQuizError(e.message)
+        setQuizLoading(false)
+      })
+  }
 
   useEffect(() => {
     if (!topic) {
@@ -341,6 +364,79 @@ export default function Analyze() {
                 >
                   Analyze another topic
                 </button>
+              </div>
+
+              {/* Test Your Understanding */}
+              <div className="mt-10 pt-8" style={{ borderTop: '1px solid #1a1a1a' }}>
+                <div
+                  className="text-xs tracking-widest uppercase mb-4"
+                  style={{ color: '#333', fontFamily: 'JetBrains Mono, monospace' }}
+                >
+                  Test your understanding
+                </div>
+
+                {quizLoading && (
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-1.5 h-1.5 rounded-full animate-pulse"
+                      style={{ background: '#ef4444' }}
+                    />
+                    <span className="text-sm" style={{ color: '#444', fontFamily: 'JetBrains Mono, monospace' }}>
+                      Generating quiz from your report...
+                    </span>
+                  </div>
+                )}
+
+                {quizError && !quizLoading && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm" style={{ color: '#888' }}>
+                      Couldn't generate quiz.
+                    </span>
+                    <button
+                      onClick={handleGenerateQuiz}
+                      className="text-xs px-3 py-1.5 rounded transition-colors"
+                      style={{ background: '#1f1f1f', color: '#999', border: '1px solid #2a2a2a', cursor: 'pointer' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#333')}
+                      onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#2a2a2a')}
+                    >
+                      Try again
+                    </button>
+                  </div>
+                )}
+
+                {quiz && !quizLoading && (
+                  <QuizRunner
+                    quiz={quiz}
+                    onReset={() => {
+                      setQuiz(null)
+                      setQuizError(null)
+                    }}
+                  />
+                )}
+
+                {!quiz && !quizLoading && !quizError && (
+                  <button
+                    onClick={handleGenerateQuiz}
+                    className="text-sm px-4 py-2 rounded transition-colors"
+                    style={{
+                      background: 'transparent',
+                      color: '#444',
+                      border: '1px solid #222',
+                      fontFamily: 'Inter, sans-serif',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#333'
+                      e.currentTarget.style.color = '#666'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#222'
+                      e.currentTarget.style.color = '#444'
+                    }}
+                  >
+                    Generate Quiz from This Report →
+                  </button>
+                )}
               </div>
             </div>
           )}
