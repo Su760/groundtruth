@@ -8,13 +8,17 @@ from dotenv import load_dotenv
 
 load_dotenv()  # Must run before any langchain imports
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 
 from langchain_groq import ChatGroq
 from backend.main import build_graph
+from backend.tracker import (
+    save_analysis, get_tracked_topics,
+    get_topic_history, get_run_count_for_topic, topic_to_slug,
+)
 
 REPORTS_DIR = Path(__file__).parent.parent / "reports"
 ALL_REGIONS = {"China", "Russia", "Middle East", "Europe", "Wire Services", "US/Western", "India", "Global South"}
@@ -161,6 +165,8 @@ async def analyze(req: AnalyzeRequest):
                 asyncio.run_coroutine_threadsafe(
                     queue.put(("done", accumulated.get("final_report", ""))), loop
                 ).result()
+                # Save to Supabase AFTER done is queued — user gets report immediately
+                save_analysis(accumulated)
             except Exception as e:
                 asyncio.run_coroutine_threadsafe(
                     queue.put(("error", str(e))), loop
@@ -200,6 +206,29 @@ async def analyze(req: AnalyzeRequest):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@app.get("/tracker")
+async def get_tracker():
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(None, get_tracked_topics)
+    return result
+
+
+@app.get("/tracker/{slug}/count")
+async def get_run_count(slug: str):
+    loop = asyncio.get_event_loop()
+    count = await loop.run_in_executor(None, lambda: get_run_count_for_topic(slug))
+    return {"slug": slug, "count": count}
+
+
+@app.get("/tracker/{slug}")
+async def get_topic_tracker(slug: str):
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(None, lambda: get_topic_history(slug))
+    if not result:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    return result
 
 
 @app.get("/reports")

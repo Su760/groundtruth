@@ -71,6 +71,16 @@ export default function Landing() {
         </button>
         <span className="mx-3 text-xs" style={{ color: '#222' }}>·</span>
         <button
+          onClick={() => navigate('/tracker')}
+          className="text-xs transition-colors"
+          style={{ color: '#444', fontFamily: 'JetBrains Mono, monospace' }}
+          onMouseEnter={(e) => (e.target.style.color = '#666')}
+          onMouseLeave={(e) => (e.target.style.color = '#444')}
+        >
+          Tracker
+        </button>
+        <span className="mx-3 text-xs" style={{ color: '#222' }}>·</span>
+        <button
           onClick={() => navigate('/reports')}
           className="text-xs transition-colors"
           style={{ color: '#444', fontFamily: 'JetBrains Mono, monospace' }}

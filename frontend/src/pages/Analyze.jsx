@@ -3,6 +3,14 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import QuizRunner from '../components/QuizRunner'
 
+function topicToSlug(topic) {
+  return topic.toLowerCase().trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 80)
+}
+
 const AGENT_ORDER = [
   { key: 'planner', label: 'Planner' },
   { key: 'researcher', label: 'Researcher' },
@@ -81,6 +89,7 @@ export default function Analyze() {
   const [quiz, setQuiz] = useState(null)
   const [quizLoading, setQuizLoading] = useState(false)
   const [quizError, setQuizError] = useState(null)
+  const [runCount, setRunCount] = useState(0)
 
   function handleGenerateQuiz() {
     setQuizLoading(true)
@@ -155,6 +164,10 @@ export default function Analyze() {
                 setReport(evt.report)
                 setActiveAgent(null)
                 setIsRunning(false)
+                fetch(`http://localhost:8000/tracker/${topicToSlug(topic)}/count`)
+                  .then((r) => r.json())
+                  .then((data) => setRunCount(data.count))
+                  .catch(() => {})
               } else if (evt.type === 'error') {
                 setError(evt.message)
                 setActiveAgent(null)
@@ -350,6 +363,31 @@ export default function Analyze() {
               </div>
 
               <div className="mt-10 pt-6" style={{ borderTop: '1px solid #1a1a1a' }}>
+                {/* Tracker badge */}
+                {runCount >= 2 && (
+                  <div className="mb-4">
+                    <button
+                      onClick={() => navigate('/tracker')}
+                      className="text-xs px-3 py-1.5 rounded transition-colors"
+                      style={{
+                        background: '#0a0f1a',
+                        border: '1px solid #1a2a3a',
+                        color: '#4a7fa5',
+                        fontFamily: 'JetBrains Mono, monospace',
+                        cursor: 'pointer',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#2a4a6a')}
+                      onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#1a2a3a')}
+                    >
+                      📈 {runCount} runs tracked — View narrative drift →
+                    </button>
+                  </div>
+                )}
+                {runCount === 1 && (
+                  <p className="text-xs mb-4" style={{ color: '#333', fontFamily: 'JetBrains Mono, monospace' }}>
+                    Run again to start tracking narrative drift
+                  </p>
+                )}
                 <button
                   onClick={() => navigate('/')}
                   className="px-5 py-2.5 rounded text-sm font-medium transition-colors"
