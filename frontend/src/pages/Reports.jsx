@@ -16,7 +16,7 @@ export default function Reports() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    fetch('http://localhost:8000/reports')
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/reports`)
       .then((r) => {
         if (!r.ok) throw new Error(`Server error ${r.status}`)
         return r.json()

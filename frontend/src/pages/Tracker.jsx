@@ -159,7 +159,7 @@ export default function Tracker() {
   // Fetch topic list on mount
   useEffect(() => {
     setLoading(true)
-    fetch('http://localhost:8000/tracker')
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/tracker`)
       .then((r) => r.json())
       .then((data) => {
         setTopics(data)
@@ -174,7 +174,7 @@ export default function Tracker() {
   function handleTopicClick(slug) {
     setLoading(true)
     setError(null)
-    fetch(`http://localhost:8000/tracker/${slug}`)
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/tracker/${slug}`)
       .then((r) => r.json())
       .then((data) => {
         setHistory(data)

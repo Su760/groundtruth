@@ -94,7 +94,7 @@ export default function Analyze() {
   function handleGenerateQuiz() {
     setQuizLoading(true)
     setQuizError(null)
-    fetch('http://localhost:8000/learn/generate', {
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/learn/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ topic, report_content: report }),
@@ -120,7 +120,7 @@ export default function Analyze() {
 
     async function startAnalysis() {
       try {
-        const res = await fetch('http://localhost:8000/analyze', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/analyze`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ topic, profile }),
@@ -164,7 +164,7 @@ export default function Analyze() {
                 setReport(evt.report)
                 setActiveAgent(null)
                 setIsRunning(false)
-                fetch(`http://localhost:8000/tracker/${topicToSlug(topic)}/count`)
+                fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/tracker/${topicToSlug(topic)}/count`)
                   .then((r) => r.json())
                   .then((data) => setRunCount(data.count))
                   .catch(() => {})
