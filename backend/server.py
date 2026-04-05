@@ -142,6 +142,7 @@ async def analyze(req: AnalyzeRequest):
             "propaganda_report": [],
             "fact_check": {},
             "confidence_score": 0.0,
+            "sources": [],
             "final_report": "",
             "disclaimer": "",
         }
@@ -164,6 +165,9 @@ async def analyze(req: AnalyzeRequest):
                 ).result()
                 asyncio.run_coroutine_threadsafe(
                     queue.put(("done", accumulated.get("final_report", ""))), loop
+                ).result()
+                asyncio.run_coroutine_threadsafe(
+                    queue.put(("sources", accumulated.get("sources", []))), loop
                 ).result()
                 # Save to Supabase AFTER done is queued — user gets report immediately
                 save_analysis(accumulated)
@@ -191,6 +195,10 @@ async def analyze(req: AnalyzeRequest):
                 yield f"data: {data}\n\n"
             elif event_type == "done":
                 data = json.dumps({"type": "done", "report": payload})
+                yield f"data: {data}\n\n"
+                # no break — wait for sources event
+            elif event_type == "sources":
+                data = json.dumps({"type": "sources", "data": payload})
                 yield f"data: {data}\n\n"
                 break
             else:

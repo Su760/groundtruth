@@ -79,4 +79,9 @@ Include 5-8 events in the timeline. Base all content on verifiable historical fa
     raw = llm.invoke(prompt).content
     historical_context = parse_json_response(raw, FALLBACK)
 
-    return {"historical_context": historical_context}
+    gdelt_sources = [
+        {"title": a["title"] or a["url"], "url": a["url"], "agent": "Context Historian"}
+        for a in articles if a.get("url")
+    ]
+    existing = state.get("sources", [])
+    return {"historical_context": historical_context, "sources": existing + gdelt_sources}

@@ -144,6 +144,9 @@ HOW EACH REGION IS FRAMING THIS:
 PROPAGANDA TECHNIQUES DETECTED:
 {propaganda_summary if propaganda_summary else "No clear propaganda techniques detected across sources."}
 
+SOURCES USED (do not reproduce in report — provided for context only):
+{chr(10).join(f"- [{s['agent']}] {s.get('title', s['url'])} — {s['url']}" for s in state.get("sources", [])[:40])}
+
 === INSTRUCTIONS ===
 Write a structured markdown report using EXACTLY these section headers in this order.
 Base every claim on the data above. Do not introduce facts not present in the analysis data.

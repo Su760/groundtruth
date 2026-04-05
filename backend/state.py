@@ -13,5 +13,6 @@ class GroundTruthState(TypedDict):
     propaganda_report: List[dict]  # from PropagandaMapper: {source_name, techniques, examples}
     fact_check: dict               # from FactChecker: {confirmed, disputed, unverified}
     confidence_score: float        # 0-1, how confident is the analysis
+    sources: List[dict]            # [{title, url, agent}] — from Researcher + ContextHistorian
     final_report: str
     disclaimer: str

@@ -18,6 +18,7 @@ def run_researcher(state: dict) -> dict:
     topic = state["topic"]
     seen_urls: set = set()
     raw_research = []
+    sources = []
 
     for query_template, source_name, region in SEARCH_CONFIGS:
         query = query_template.replace("{topic}", topic)
@@ -35,8 +36,13 @@ def run_researcher(state: dict) -> dict:
                     "source_name": source_name,
                     "region": region,
                 })
+                sources.append({
+                    "title": r.get("title", "") or url,
+                    "url": url,
+                    "agent": "Researcher",
+                })
         except Exception as e:
             print(f"    [warn] Search failed for '{source_name}': {e}")
 
     print(f"    Collected {len(raw_research)} unique articles")
-    return {"raw_research": raw_research}
+    return {"raw_research": raw_research, "sources": sources}

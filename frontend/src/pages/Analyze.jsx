@@ -1,40 +1,42 @@
-import { useEffect, useState } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
-import ReactMarkdown from 'react-markdown'
-import QuizRunner from '../components/QuizRunner'
+import { useEffect, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
+import QuizRunner from "../components/QuizRunner";
 
 function topicToSlug(topic) {
-  return topic.toLowerCase().trim()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .slice(0, 80)
+  return topic
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 80);
 }
 
 const AGENT_ORDER = [
-  { key: 'planner', label: 'Planner' },
-  { key: 'researcher', label: 'Researcher' },
-  { key: 'context_historian', label: 'Context Historian' },
-  { key: 'translation_layer', label: 'Translation Layer' },
-  { key: 'bias_detector', label: 'Bias Detector' },
-  { key: 'perspective_analyst', label: 'Perspective Analyst' },
-  { key: 'propaganda_mapper', label: 'Propaganda Mapper' },
-  { key: 'fact_checker', label: 'Fact Checker' },
-  { key: 'synthesizer', label: 'Synthesizer' },
-]
+  { key: "planner", label: "Planner" },
+  { key: "researcher", label: "Researcher" },
+  { key: "context_historian", label: "Context Historian" },
+  { key: "translation_layer", label: "Translation Layer" },
+  { key: "bias_detector", label: "Bias Detector" },
+  { key: "perspective_analyst", label: "Perspective Analyst" },
+  { key: "propaganda_mapper", label: "Propaganda Mapper" },
+  { key: "fact_checker", label: "Fact Checker" },
+  { key: "synthesizer", label: "Synthesizer" },
+];
 
 function AgentStep({ label, status }) {
-  const isDone = status === 'done'
-  const isActive = status === 'active'
+  const isDone = status === "done";
+  const isActive = status === "active";
   return (
     <div className="flex items-center gap-3 py-2">
       {/* Status indicator */}
       <div
         className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
         style={{
-          background: isDone ? '#22c55e' : 'transparent',
-          border: isDone ? 'none' : isActive ? 'none' : '1px solid #2a2a2a',
-          transition: 'all 0.3s ease',
+          background: isDone ? "#22c55e" : "transparent",
+          border: isDone ? "none" : isActive ? "none" : "1px solid #2a2a2a",
+          transition: "all 0.3s ease",
         }}
       >
         {isDone && (
@@ -51,127 +53,142 @@ function AgentStep({ label, status }) {
         {isActive && (
           <div
             className="w-5 h-5 rounded-full animate-pulse"
-            style={{ background: '#ef4444' }}
+            style={{ background: "#ef4444" }}
           />
         )}
       </div>
       <span
         className="text-sm transition-all duration-300"
         style={{
-          color: isDone || isActive ? '#e5e5e5' : '#333',
-          fontFamily: 'Inter, sans-serif',
+          color: isDone || isActive ? "#e5e5e5" : "#333",
+          fontFamily: "Inter, sans-serif",
         }}
       >
         {label}
       </span>
     </div>
-  )
+  );
 }
 
 export default function Analyze() {
-  const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
-  const topic = searchParams.get('topic') || ''
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const topic = searchParams.get("topic") || "";
 
   // Read profile once — not reactive, profile doesn't change during analysis
   const profile = (() => {
-    try { return JSON.parse(localStorage.getItem('gt_user_profile')) } catch { return null }
-  })()
+    try {
+      return JSON.parse(localStorage.getItem("gt_user_profile"));
+    } catch {
+      return null;
+    }
+  })();
 
   const [agentStatuses, setAgentStatuses] = useState(() =>
-    Object.fromEntries(AGENT_ORDER.map((a) => [a.key, 'pending']))
-  )
-  const [activeAgent, setActiveAgent] = useState(AGENT_ORDER[0].key)
-  const [report, setReport] = useState(null)
-  const [missingRegions, setMissingRegions] = useState([])
-  const [error, setError] = useState(null)
-  const [isRunning, setIsRunning] = useState(true)
-  const [quiz, setQuiz] = useState(null)
-  const [quizLoading, setQuizLoading] = useState(false)
-  const [quizError, setQuizError] = useState(null)
-  const [runCount, setRunCount] = useState(0)
+    Object.fromEntries(AGENT_ORDER.map((a) => [a.key, "pending"])),
+  );
+  const [activeAgent, setActiveAgent] = useState(AGENT_ORDER[0].key);
+  const [report, setReport] = useState(null);
+  const [missingRegions, setMissingRegions] = useState([]);
+  const [error, setError] = useState(null);
+  const [isRunning, setIsRunning] = useState(true);
+  const [quiz, setQuiz] = useState(null);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [quizError, setQuizError] = useState(null);
+  const [runCount, setRunCount] = useState(0);
+  const [sources, setSources] = useState([]);
 
   function handleGenerateQuiz() {
-    setQuizLoading(true)
-    setQuizError(null)
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/learn/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic, report_content: report }),
-    })
+    setQuizLoading(true);
+    setQuizError(null);
+    fetch(
+      `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/learn/generate`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic, report_content: report }),
+      },
+    )
       .then((r) => r.json())
       .then((data) => {
-        setQuiz(data)
-        setQuizLoading(false)
+        setQuiz(data);
+        setQuizLoading(false);
       })
       .catch((e) => {
-        setQuizError(e.message)
-        setQuizLoading(false)
-      })
+        setQuizError(e.message);
+        setQuizLoading(false);
+      });
   }
 
   useEffect(() => {
     if (!topic) {
-      navigate('/')
-      return
+      navigate("/");
+      return;
     }
 
-    const controller = new AbortController()
+    const controller = new AbortController();
 
     async function startAnalysis() {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/analyze`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ topic, profile }),
-          signal: controller.signal,
-        })
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/analyze`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ topic, profile }),
+            signal: controller.signal,
+          },
+        );
 
         if (!res.ok) {
-          const text = await res.text()
-          setError(`Server error ${res.status}: ${text}`)
-          setIsRunning(false)
-          return
+          const text = await res.text();
+          setError(`Server error ${res.status}: ${text}`);
+          setIsRunning(false);
+          return;
         }
 
-        const reader = res.body.getReader()
-        const decoder = new TextDecoder()
-        let buffer = ''
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
 
         while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
+          const { done, value } = await reader.read();
+          if (done) break;
 
-          buffer += decoder.decode(value, { stream: true })
+          buffer += decoder.decode(value, { stream: true });
           // SSE events are delimited by \n\n
-          const parts = buffer.split('\n\n')
-          buffer = parts.pop() // keep incomplete trailing chunk
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop(); // keep incomplete trailing chunk
 
           for (const part of parts) {
-            const line = part.trim()
-            if (!line.startsWith('data: ')) continue
+            const line = part.trim();
+            if (!line.startsWith("data: ")) continue;
             try {
-              const evt = JSON.parse(line.slice(6).trim())
-              if (evt.type === 'progress') {
-                setAgentStatuses((prev) => ({ ...prev, [evt.agent]: 'done' }))
+              const evt = JSON.parse(line.slice(6).trim());
+              if (evt.type === "progress") {
+                setAgentStatuses((prev) => ({ ...prev, [evt.agent]: "done" }));
                 // Set next agent as active
-                const idx = AGENT_ORDER.findIndex((a) => a.key === evt.agent)
-                const next = AGENT_ORDER[idx + 1]
-                setActiveAgent(next ? next.key : null)
-              } else if (evt.type === 'coverage') {
-                setMissingRegions(evt.missing_regions || [])
-              } else if (evt.type === 'done') {
-                setReport(evt.report)
-                setActiveAgent(null)
-                setIsRunning(false)
-                fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/tracker/${topicToSlug(topic)}/count`)
+                const idx = AGENT_ORDER.findIndex((a) => a.key === evt.agent);
+                const next = AGENT_ORDER[idx + 1];
+                setActiveAgent(next ? next.key : null);
+              } else if (evt.type === "coverage") {
+                setMissingRegions(evt.missing_regions || []);
+              } else if (evt.type === "done") {
+                setReport(evt.report);
+                setActiveAgent(null);
+                setIsRunning(false);
+                fetch(
+                  `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/tracker/${topicToSlug(topic)}/count`,
+                )
                   .then((r) => r.json())
                   .then((data) => setRunCount(data.count))
-                  .catch(() => {})
-              } else if (evt.type === 'error') {
-                setError(evt.message)
-                setActiveAgent(null)
-                setIsRunning(false)
+                  .catch(() => {});
+              } else if (evt.type === "sources") {
+                setSources(evt.data);
+              } else if (evt.type === "error") {
+                setError(evt.message);
+                setActiveAgent(null);
+                setIsRunning(false);
               }
             } catch {
               // Ignore malformed SSE lines
@@ -179,69 +196,75 @@ export default function Analyze() {
           }
         }
       } catch (err) {
-        if (err.name !== 'AbortError') {
-          setError(err.message)
-          setIsRunning(false)
+        if (err.name !== "AbortError") {
+          setError(err.message);
+          setIsRunning(false);
         }
       }
     }
 
-    startAnalysis()
-    return () => controller.abort()
-  }, [topic, navigate])
+    startAnalysis();
+    return () => controller.abort();
+  }, [topic, navigate]);
 
-  const completedCount = Object.values(agentStatuses).filter((s) => s === 'done').length
+  const completedCount = Object.values(agentStatuses).filter(
+    (s) => s === "done",
+  ).length;
 
   // Compute displayed statuses: active agent overrides pending
   const displayStatuses = Object.fromEntries(
     AGENT_ORDER.map((a) => {
-      const s = agentStatuses[a.key]
-      if (s === 'pending' && a.key === activeAgent && isRunning) return [a.key, 'active']
-      return [a.key, s]
-    })
-  )
+      const s = agentStatuses[a.key];
+      if (s === "pending" && a.key === activeAgent && isRunning)
+        return [a.key, "active"];
+      return [a.key, s];
+    }),
+  );
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#0a0a0a' }}>
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: "#0a0a0a" }}
+    >
       {/* Header */}
       <div
         className="flex items-center gap-4 px-6 py-4"
-        style={{ borderBottom: '1px solid #141414' }}
+        style={{ borderBottom: "1px solid #141414" }}
       >
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate("/")}
           className="text-xs transition-colors"
           style={{
-            color: '#444',
-            fontFamily: 'JetBrains Mono, monospace',
+            color: "#444",
+            fontFamily: "JetBrains Mono, monospace",
           }}
-          onMouseEnter={(e) => (e.target.style.color = '#666')}
-          onMouseLeave={(e) => (e.target.style.color = '#444')}
+          onMouseEnter={(e) => (e.target.style.color = "#666")}
+          onMouseLeave={(e) => (e.target.style.color = "#444")}
         >
           ← back
         </button>
         <span
           className="text-sm font-bold"
-          style={{ fontFamily: 'JetBrains Mono, monospace', color: '#ef4444' }}
+          style={{ fontFamily: "JetBrains Mono, monospace", color: "#ef4444" }}
         >
           GroundTruth
         </span>
-        <span className="text-xs" style={{ color: '#333' }}>
+        <span className="text-xs" style={{ color: "#333" }}>
           /
         </span>
-        <span className="text-sm truncate max-w-xs" style={{ color: '#666' }}>
+        <span className="text-sm truncate max-w-xs" style={{ color: "#666" }}>
           {topic}
         </span>
         <div className="ml-auto">
           <button
-            onClick={() => navigate('/reports')}
+            onClick={() => navigate("/reports")}
             className="text-xs transition-colors"
             style={{
-              color: '#444',
-              fontFamily: 'JetBrains Mono, monospace',
+              color: "#444",
+              fontFamily: "JetBrains Mono, monospace",
             }}
-            onMouseEnter={(e) => (e.target.style.color = '#666')}
-            onMouseLeave={(e) => (e.target.style.color = '#444')}
+            onMouseEnter={(e) => (e.target.style.color = "#666")}
+            onMouseLeave={(e) => (e.target.style.color = "#444")}
           >
             History
           </button>
@@ -253,13 +276,16 @@ export default function Analyze() {
         {/* Left sidebar — agent progress */}
         <div
           className="w-full lg:w-64 flex-shrink-0 p-6"
-          style={{ borderRight: '1px solid #141414' }}
+          style={{ borderRight: "1px solid #141414" }}
         >
           <div className="mb-4">
-            <div className="text-xs tracking-widest uppercase mb-1" style={{ color: '#333' }}>
+            <div
+              className="text-xs tracking-widest uppercase mb-1"
+              style={{ color: "#333" }}
+            >
               Analysis pipeline
             </div>
-            <div className="text-xs" style={{ color: '#444' }}>
+            <div className="text-xs" style={{ color: "#444" }}>
               {completedCount} / {AGENT_ORDER.length} complete
             </div>
           </div>
@@ -278,9 +304,9 @@ export default function Analyze() {
             <div className="mt-6 flex items-center gap-2">
               <div
                 className="w-1.5 h-1.5 rounded-full animate-pulse"
-                style={{ background: '#ef4444' }}
+                style={{ background: "#ef4444" }}
               />
-              <span className="text-xs" style={{ color: '#444' }}>
+              <span className="text-xs" style={{ color: "#444" }}>
                 Running...
               </span>
             </div>
@@ -292,18 +318,25 @@ export default function Analyze() {
           {error && (
             <div
               className="rounded p-4 mb-6"
-              style={{ background: '#1a0a0a', border: '1px solid #3f1515' }}
+              style={{ background: "#1a0a0a", border: "1px solid #3f1515" }}
             >
-              <div className="text-sm font-medium mb-1" style={{ color: '#ef4444' }}>
+              <div
+                className="text-sm font-medium mb-1"
+                style={{ color: "#ef4444" }}
+              >
                 Analysis failed
               </div>
-              <div className="text-sm" style={{ color: '#888' }}>
+              <div className="text-sm" style={{ color: "#888" }}>
                 {error}
               </div>
               <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate("/")}
                 className="mt-3 text-xs px-3 py-1.5 rounded transition-colors"
-                style={{ background: '#1f1f1f', color: '#999', border: '1px solid #2a2a2a' }}
+                style={{
+                  background: "#1f1f1f",
+                  color: "#999",
+                  border: "1px solid #2a2a2a",
+                }}
               >
                 Try another topic
               </button>
@@ -314,13 +347,19 @@ export default function Analyze() {
             <div className="flex flex-col items-start">
               <div
                 className="text-xs tracking-widest uppercase mb-4"
-                style={{ color: '#333', fontFamily: 'JetBrains Mono, monospace' }}
+                style={{
+                  color: "#333",
+                  fontFamily: "JetBrains Mono, monospace",
+                }}
               >
                 Analyzing
               </div>
               <div
                 className="text-2xl font-bold mb-6"
-                style={{ fontFamily: 'JetBrains Mono, monospace', color: '#e5e5e5' }}
+                style={{
+                  fontFamily: "JetBrains Mono, monospace",
+                  color: "#e5e5e5",
+                }}
               >
                 {topic}
               </div>
@@ -331,9 +370,9 @@ export default function Analyze() {
                     key={i}
                     className="h-3 rounded animate-pulse"
                     style={{
-                      background: '#141414',
+                      background: "#141414",
                       width: `${w * 0.6 + 20}%`,
-                      maxWidth: '100%',
+                      maxWidth: "100%",
                     }}
                   />
                 ))}
@@ -347,14 +386,14 @@ export default function Analyze() {
                 <div
                   className="rounded px-4 py-3 mb-6 text-xs"
                   style={{
-                    background: '#1a1500',
-                    border: '1px solid #3a2a00',
-                    color: '#a16207',
-                    fontFamily: 'Inter, sans-serif',
+                    background: "#1a1500",
+                    border: "1px solid #3a2a00",
+                    color: "#a16207",
+                    fontFamily: "Inter, sans-serif",
                   }}
                 >
-                  ⚠ No coverage found for: {missingRegions.join(', ')} — analysis may reflect
-                  incomplete power bloc perspectives.
+                  ⚠ No coverage found for: {missingRegions.join(", ")} —
+                  analysis may reflect incomplete power bloc perspectives.
                 </div>
               )}
 
@@ -362,53 +401,128 @@ export default function Analyze() {
                 <ReactMarkdown>{report}</ReactMarkdown>
               </div>
 
-              <div className="mt-10 pt-6" style={{ borderTop: '1px solid #1a1a1a' }}>
+              {sources.length > 0 && (
+                <div
+                  id="sources-section"
+                  style={{
+                    borderTop: "1px solid #1a1a1a",
+                    marginTop: "2.5rem",
+                    paddingTop: "2rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "0.65rem",
+                      letterSpacing: "0.15em",
+                      color: "#333",
+                      fontFamily: "JetBrains Mono, monospace",
+                      textTransform: "uppercase",
+                      marginBottom: "1rem",
+                    }}
+                  >
+                    Sources
+                  </div>
+                  {sources.map((s, i) => (
+                    <div key={i} style={{ marginBottom: "0.75rem" }}>
+                      <span
+                        style={{
+                          fontSize: "0.65rem",
+                          color: "#444",
+                          fontFamily: "JetBrains Mono, monospace",
+                          marginRight: "0.5rem",
+                          background: "#111",
+                          border: "1px solid #1a1a1a",
+                          padding: "1px 6px",
+                          borderRadius: "3px",
+                        }}
+                      >
+                        {s.agent}
+                      </span>
+                      <a
+                        href={s.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          fontSize: "0.8rem",
+                          color: "#666",
+                          textDecoration: "none",
+                        }}
+                        onMouseOver={(e) => (e.target.style.color = "#e5e5e5")}
+                        onMouseOut={(e) => (e.target.style.color = "#666")}
+                      >
+                        {s.title || s.url}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div
+                className="mt-10 pt-6"
+                style={{ borderTop: "1px solid #1a1a1a" }}
+              >
                 {/* Tracker badge */}
                 {runCount >= 2 && (
                   <div className="mb-4">
                     <button
-                      onClick={() => navigate('/tracker')}
+                      onClick={() => navigate("/tracker")}
                       className="text-xs px-3 py-1.5 rounded transition-colors"
                       style={{
-                        background: '#0a0f1a',
-                        border: '1px solid #1a2a3a',
-                        color: '#4a7fa5',
-                        fontFamily: 'JetBrains Mono, monospace',
-                        cursor: 'pointer',
+                        background: "#0a0f1a",
+                        border: "1px solid #1a2a3a",
+                        color: "#4a7fa5",
+                        fontFamily: "JetBrains Mono, monospace",
+                        cursor: "pointer",
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#2a4a6a')}
-                      onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#1a2a3a')}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.borderColor = "#2a4a6a")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.borderColor = "#1a2a3a")
+                      }
                     >
                       📈 {runCount} runs tracked — View narrative drift →
                     </button>
                   </div>
                 )}
                 {runCount === 1 && (
-                  <p className="text-xs mb-4" style={{ color: '#333', fontFamily: 'JetBrains Mono, monospace' }}>
+                  <p
+                    className="text-xs mb-4"
+                    style={{
+                      color: "#333",
+                      fontFamily: "JetBrains Mono, monospace",
+                    }}
+                  >
                     Run again to start tracking narrative drift
                   </p>
                 )}
                 <button
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate("/")}
                   className="px-5 py-2.5 rounded text-sm font-medium transition-colors"
                   style={{
-                    background: '#111111',
-                    color: '#e5e5e5',
-                    border: '1px solid #222',
-                    fontFamily: 'Inter, sans-serif',
+                    background: "#111111",
+                    color: "#e5e5e5",
+                    border: "1px solid #222",
+                    fontFamily: "Inter, sans-serif",
                   }}
-                  onMouseEnter={(e) => (e.target.style.borderColor = '#333')}
-                  onMouseLeave={(e) => (e.target.style.borderColor = '#222')}
+                  onMouseEnter={(e) => (e.target.style.borderColor = "#333")}
+                  onMouseLeave={(e) => (e.target.style.borderColor = "#222")}
                 >
                   Analyze another topic
                 </button>
               </div>
 
               {/* Test Your Understanding */}
-              <div className="mt-10 pt-8" style={{ borderTop: '1px solid #1a1a1a' }}>
+              <div
+                className="mt-10 pt-8"
+                style={{ borderTop: "1px solid #1a1a1a" }}
+              >
                 <div
                   className="text-xs tracking-widest uppercase mb-4"
-                  style={{ color: '#333', fontFamily: 'JetBrains Mono, monospace' }}
+                  style={{
+                    color: "#333",
+                    fontFamily: "JetBrains Mono, monospace",
+                  }}
                 >
                   Test your understanding
                 </div>
@@ -417,9 +531,15 @@ export default function Analyze() {
                   <div className="flex items-center gap-2">
                     <div
                       className="w-1.5 h-1.5 rounded-full animate-pulse"
-                      style={{ background: '#ef4444' }}
+                      style={{ background: "#ef4444" }}
                     />
-                    <span className="text-sm" style={{ color: '#444', fontFamily: 'JetBrains Mono, monospace' }}>
+                    <span
+                      className="text-sm"
+                      style={{
+                        color: "#444",
+                        fontFamily: "JetBrains Mono, monospace",
+                      }}
+                    >
                       Generating quiz from your report...
                     </span>
                   </div>
@@ -427,15 +547,24 @@ export default function Analyze() {
 
                 {quizError && !quizLoading && (
                   <div className="flex items-center gap-3">
-                    <span className="text-sm" style={{ color: '#888' }}>
+                    <span className="text-sm" style={{ color: "#888" }}>
                       Couldn't generate quiz.
                     </span>
                     <button
                       onClick={handleGenerateQuiz}
                       className="text-xs px-3 py-1.5 rounded transition-colors"
-                      style={{ background: '#1f1f1f', color: '#999', border: '1px solid #2a2a2a', cursor: 'pointer' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#333')}
-                      onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#2a2a2a')}
+                      style={{
+                        background: "#1f1f1f",
+                        color: "#999",
+                        border: "1px solid #2a2a2a",
+                        cursor: "pointer",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.borderColor = "#333")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.borderColor = "#2a2a2a")
+                      }
                     >
                       Try again
                     </button>
@@ -446,8 +575,8 @@ export default function Analyze() {
                   <QuizRunner
                     quiz={quiz}
                     onReset={() => {
-                      setQuiz(null)
-                      setQuizError(null)
+                      setQuiz(null);
+                      setQuizError(null);
                     }}
                   />
                 )}
@@ -457,19 +586,19 @@ export default function Analyze() {
                     onClick={handleGenerateQuiz}
                     className="text-sm px-4 py-2 rounded transition-colors"
                     style={{
-                      background: 'transparent',
-                      color: '#444',
-                      border: '1px solid #222',
-                      fontFamily: 'Inter, sans-serif',
-                      cursor: 'pointer',
+                      background: "transparent",
+                      color: "#444",
+                      border: "1px solid #222",
+                      fontFamily: "Inter, sans-serif",
+                      cursor: "pointer",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = '#333'
-                      e.currentTarget.style.color = '#666'
+                      e.currentTarget.style.borderColor = "#333";
+                      e.currentTarget.style.color = "#666";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = '#222'
-                      e.currentTarget.style.color = '#444'
+                      e.currentTarget.style.borderColor = "#222";
+                      e.currentTarget.style.color = "#444";
                     }}
                   >
                     Generate Quiz from This Report →
@@ -481,5 +610,5 @@ export default function Analyze() {
         </div>
       </div>
     </div>
-  )
+  );
 }
