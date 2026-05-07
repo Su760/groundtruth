@@ -1,215 +1,304 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-const SCORE_MESSAGES = {
-  6: 'Perfect — you know this topic cold.',
-  5: 'Strong — a few gaps, but solid understanding.',
-  4: 'Strong — a few gaps, but solid understanding.',
-  3: 'Getting there — consider running a GroundTruth analysis.',
-  2: 'Getting there — consider running a GroundTruth analysis.',
-  1: 'Good starting point — GroundTruth can fill in the gaps.',
-  0: 'Good starting point — GroundTruth can fill in the gaps.',
+function getScoreMessage(score, total) {
+  const ratio = score / total;
+  if (ratio === 1) return "Perfect — you know this topic cold.";
+  if (ratio >= 0.66) return "Strong — a few gaps, but solid understanding.";
+  if (ratio >= 0.33)
+    return "Getting there — consider running a GroundTruth analysis.";
+  return "Good starting point — GroundTruth can fill in the gaps.";
 }
 
 export default function QuizRunner({ quiz, onReset }) {
-  const navigate = useNavigate()
-  const [currentQ, setCurrentQ] = useState(0)
-  const [selected, setSelected] = useState(null)
-  const [revealed, setRevealed] = useState(false)
-  const [score, setScore] = useState(0)
-  const [finished, setFinished] = useState(false)
+  const navigate = useNavigate();
+  const [currentQ, setCurrentQ] = useState(0);
+  const [selected, setSelected] = useState(null);
+  const [revealed, setRevealed] = useState(false);
+  const [score, setScore] = useState(0);
+  const [finished, setFinished] = useState(false);
 
-  const total = quiz.questions.length
-  const question = quiz.questions[currentQ]
-  const isLast = currentQ === total - 1
+  const total = quiz.questions.length;
+  const question = quiz.questions[currentQ];
+  const isLast = currentQ === total - 1;
 
   function handleSelect(idx) {
-    if (revealed) return
-    setSelected(idx)
-    setRevealed(true)
-    if (idx === question.correct_index) {
-      setScore((s) => s + 1)
+    if (revealed) return;
+    setSelected(idx);
+  }
+
+  function handleReveal() {
+    if (selected === null) return;
+    setRevealed(true);
+    if (selected === question.correct_index) {
+      setScore((s) => s + 1);
     }
   }
 
   function handleNext() {
     if (isLast) {
-      setFinished(true)
+      setFinished(true);
     } else {
-      setCurrentQ((q) => q + 1)
-      setSelected(null)
-      setRevealed(false)
-    }
-  }
-
-  function getOptionStyle(idx) {
-    if (!revealed) {
-      return {
-        background: '#111111',
-        border: '1px solid #1a1a1a',
-        color: '#888',
-        cursor: 'pointer',
-      }
-    }
-    if (idx === question.correct_index) {
-      return {
-        background: '#0a1a0a',
-        border: '1px solid #22c55e',
-        color: '#e5e5e5',
-        cursor: 'default',
-      }
-    }
-    if (idx === selected) {
-      return {
-        background: '#1a0a0a',
-        border: '1px solid #ef4444',
-        color: '#e5e5e5',
-        cursor: 'default',
-      }
-    }
-    return {
-      background: '#111111',
-      border: '1px solid #1a1a1a',
-      color: '#333',
-      cursor: 'default',
+      setCurrentQ((q) => q + 1);
+      setSelected(null);
+      setRevealed(false);
     }
   }
 
   if (finished) {
+    const scoreMessage = getScoreMessage(score, total);
     return (
-      <div className="max-w-xl mx-auto py-8">
-        <div
-          className="text-5xl font-bold mb-4"
-          style={{ fontFamily: 'JetBrains Mono, monospace', color: '#e5e5e5' }}
-        >
-          {score} <span style={{ color: '#444' }}>/ {total}</span>
+      <div style={{ textAlign: "center", padding: "40px 0" }}>
+        <div className="gt-mono" style={{ marginBottom: 16 }}>
+          QUIZ COMPLETE
         </div>
-        <p className="text-sm mb-8 italic" style={{ color: '#666' }}>
-          {SCORE_MESSAGES[score] ?? SCORE_MESSAGES[0]}
-        </p>
-        <div className="flex gap-3">
-          <button
-            onClick={onReset}
-            className="px-4 py-2 rounded text-sm transition-colors"
-            style={{
-              background: '#111111',
-              border: '1px solid #222',
-              color: '#999',
-              fontFamily: 'Inter, sans-serif',
-              cursor: 'pointer',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#333')}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#222')}
-          >
+
+        <div
+          style={{
+            fontFamily: "var(--mono)",
+            fontSize: 64,
+            lineHeight: 1,
+            color: "var(--ink-0)",
+            marginBottom: 8,
+          }}
+        >
+          {score}
+          <span style={{ color: "var(--ink-3)", fontSize: 32 }}>/{total}</span>
+        </div>
+
+        <div
+          style={{
+            fontFamily: "var(--serif)",
+            fontSize: 20,
+            color: "var(--ink-1)",
+            fontStyle: "italic",
+            marginBottom: 32,
+          }}
+        >
+          {scoreMessage}
+        </div>
+
+        <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+          <button className="gt-btn gt-btn-ghost" onClick={onReset}>
             Try another topic
           </button>
           <button
-            onClick={() => navigate('/analyze?topic=' + encodeURIComponent(quiz.topic))}
-            className="px-4 py-2 rounded text-sm font-medium transition-colors"
-            style={{
-              background: '#ef4444',
-              color: '#fff',
-              border: 'none',
-              fontFamily: 'Inter, sans-serif',
-              cursor: 'pointer',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#dc2626')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '#ef4444')}
+            className="gt-btn gt-btn-primary"
+            onClick={() =>
+              navigate("/analyze?topic=" + encodeURIComponent(quiz.topic))
+            }
           >
             Analyze {quiz.topic} →
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="max-w-xl mx-auto py-8">
+    <div>
+      {/* Progress line */}
+      <div style={{ marginBottom: 20 }}>
+        <div className="gt-mono" style={{ fontSize: 10, marginBottom: 8 }}>
+          QUESTION {currentQ + 1} / {total}
+        </div>
+        <div style={{ height: 2, background: "var(--bg-3)", borderRadius: 1 }}>
+          <div
+            style={{
+              height: "100%",
+              borderRadius: 1,
+              width: ((currentQ + 1) / total) * 100 + "%",
+              background: "var(--amber)",
+              transition: "width 0.3s var(--ease-out)",
+            }}
+          />
+        </div>
+      </div>
+
       {/* Source badge */}
-      <div className="mb-4">
-        {quiz.source === 'report' ? (
-          <span
-            className="text-xs px-2 py-1 rounded"
-            style={{ background: '#1a1500', color: '#a16207', fontFamily: 'Inter, sans-serif' }}
-          >
-            Based on your report
-          </span>
-        ) : (
-          <span
-            className="text-xs px-2 py-1 rounded"
-            style={{ background: '#0a0f1a', color: '#4a7fa5', fontFamily: 'Inter, sans-serif' }}
-          >
-            General knowledge
-          </span>
-        )}
-      </div>
+      {quiz.source && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+          {quiz.source === "report" && (
+            <span
+              style={{
+                padding: "3px 8px",
+                borderRadius: 3,
+                background: "rgba(212,162,74,0.08)",
+                border: "1px solid var(--amber-dim)",
+                fontFamily: "var(--mono)",
+                fontSize: 10,
+                color: "var(--amber)",
+              }}
+            >
+              BASED ON YOUR REPORT
+            </span>
+          )}
+          {quiz.source === "general" && (
+            <span
+              style={{
+                padding: "3px 8px",
+                borderRadius: 3,
+                background: "rgba(107,138,168,0.08)",
+                border: "1px solid var(--steel)",
+                fontFamily: "var(--mono)",
+                fontSize: 10,
+                color: "var(--steel)",
+              }}
+            >
+              GENERAL KNOWLEDGE
+            </span>
+          )}
+        </div>
+      )}
 
-      {/* Progress */}
+      {/* Question text */}
       <div
-        className="text-xs mb-4"
-        style={{ color: '#333', fontFamily: 'JetBrains Mono, monospace' }}
-      >
-        Question {currentQ + 1} of {total}
-      </div>
-
-      {/* Question */}
-      <h3
-        className="text-xl font-semibold mb-6"
-        style={{ color: '#e5e5e5', fontFamily: 'Inter, sans-serif' }}
+        style={{
+          fontFamily: "var(--serif)",
+          fontSize: 26,
+          lineHeight: 1.25,
+          letterSpacing: "-0.015em",
+          color: "var(--ink-0)",
+          marginBottom: 28,
+        }}
       >
         {question.question}
-      </h3>
+      </div>
 
       {/* Options */}
-      <div className="space-y-3 mb-4">
-        {question.options.map((option, idx) => (
-          <button
-            key={idx}
-            type="button"
-            onClick={() => handleSelect(idx)}
-            className="w-full text-left rounded p-4 transition-all text-sm"
-            style={{
-              ...getOptionStyle(idx),
-              fontFamily: 'Inter, sans-serif',
-            }}
-            onMouseEnter={(e) => {
-              if (!revealed) e.currentTarget.style.borderColor = '#2a2a2a'
-            }}
-            onMouseLeave={(e) => {
-              if (!revealed) e.currentTarget.style.borderColor = '#1a1a1a'
-            }}
-          >
-            {option}
-          </button>
-        ))}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {question.options.map((option, idx) => {
+          let optionStyle;
+          if (!revealed) {
+            optionStyle = {
+              padding: "13px 18px",
+              borderRadius: 5,
+              cursor: "pointer",
+              background: selected === idx ? "var(--bg-3)" : "var(--bg-2)",
+              border:
+                "1px solid " +
+                (selected === idx
+                  ? "var(--hairline-strong)"
+                  : "var(--hairline)"),
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              transition: "all 0.15s var(--ease-out)",
+            };
+          } else if (idx === question.correct_index) {
+            optionStyle = {
+              padding: "13px 18px",
+              borderRadius: 5,
+              cursor: "default",
+              background: "#0a1a0a",
+              border: "1px solid var(--phosphor)",
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+            };
+          } else if (idx === selected) {
+            optionStyle = {
+              padding: "13px 18px",
+              borderRadius: 5,
+              cursor: "default",
+              background: "#1a0a0a",
+              border: "1px solid var(--signal)",
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+            };
+          } else {
+            optionStyle = {
+              padding: "13px 18px",
+              borderRadius: 5,
+              cursor: "default",
+              background: "var(--bg-2)",
+              border: "1px solid var(--hairline)",
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              opacity: 0.45,
+              pointerEvents: "none",
+            };
+          }
+
+          return (
+            <div
+              key={idx}
+              onClick={() => handleSelect(idx)}
+              style={optionStyle}
+            >
+              <span
+                style={{
+                  fontFamily: "var(--mono)",
+                  fontSize: 11,
+                  color:
+                    !revealed && selected === idx
+                      ? "var(--ink-1)"
+                      : "var(--ink-3)",
+                  minWidth: 16,
+                }}
+              >
+                {String.fromCharCode(65 + idx)}
+              </span>
+              <span
+                style={{
+                  fontSize: 14,
+                  color:
+                    !revealed && selected === idx
+                      ? "var(--ink-0)"
+                      : "var(--ink-1)",
+                }}
+              >
+                {option}
+              </span>
+            </div>
+          );
+        })}
       </div>
 
       {/* Explanation */}
       {revealed && (
-        <p className="text-sm italic mb-6" style={{ color: '#666', fontFamily: 'Inter, sans-serif' }}>
-          {question.explanation}
-        </p>
+        <div
+          style={{
+            marginTop: 16,
+            padding: "14px 18px",
+            background: "var(--bg-2)",
+            border: "1px solid var(--hairline)",
+            borderRadius: 5,
+          }}
+        >
+          <div className="gt-mono" style={{ marginBottom: 6, fontSize: 9 }}>
+            EXPLANATION
+          </div>
+          <div
+            className="gt-body"
+            style={{ fontStyle: "italic", color: "var(--ink-1)" }}
+          >
+            {question.explanation}
+          </div>
+        </div>
       )}
 
-      {/* Next button */}
-      {revealed && (
+      {/* Submit / Next button */}
+      {!revealed ? (
         <button
-          type="button"
-          onClick={handleNext}
-          className="px-5 py-2.5 rounded text-sm font-medium transition-colors"
-          style={{
-            background: '#ef4444',
-            color: '#fff',
-            border: 'none',
-            fontFamily: 'Inter, sans-serif',
-            cursor: 'pointer',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = '#dc2626')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = '#ef4444')}
+          className="gt-btn gt-btn-primary"
+          onClick={handleReveal}
+          style={{ marginTop: 20 }}
+          disabled={selected === null}
         >
-          {isLast ? 'See Results →' : 'Next →'}
+          Submit answer →
+        </button>
+      ) : (
+        <button
+          className="gt-btn gt-btn-ghost"
+          onClick={handleNext}
+          style={{ marginTop: 20 }}
+        >
+          {isLast ? "See results →" : "Next question →"}
         </button>
       )}
     </div>
-  )
+  );
 }
