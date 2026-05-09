@@ -2,7 +2,6 @@ import asyncio
 from urllib.parse import urlparse
 
 import httpx
-from langchain_community.tools import TavilySearchResults
 
 from .sources import BLOC_SOURCES, BlocSources
 from .extractors import fetch_article, Article
@@ -36,8 +35,22 @@ def _tavily_search(topic: str, bloc_code: str, max_results: int = 5) -> list[dic
     query_template, _ = _TAVILY_QUERY_MAP.get(bloc_code, (f"{topic}", "Unknown"))
     query = query_template.replace("{topic}", topic)
     try:
-        tool = TavilySearchResults(max_results=max_results)
-        return tool.invoke({"query": query})
+        from langchain_tavily import TavilySearch
+        tool = TavilySearch(max_results=max_results)
+        result = tool.invoke({"query": query})
+        # New API returns dict with 'results' key containing list of dicts
+        if isinstance(result, dict) and 'results' in result:
+            return result['results']
+        # Fallback: handle list of dicts or list of strings
+        if isinstance(result, list):
+            normalized = []
+            for r in result:
+                if isinstance(r, dict):
+                    normalized.append(r)
+                elif isinstance(r, str):
+                    normalized.append({'url': r, 'content': r, 'title': r})
+            return normalized
+        return []
     except Exception as e:
         print(f"    [warn] Tavily fallback failed for {bloc_code}: {e}")
         return []
@@ -113,8 +126,14 @@ async def _research_all_blocs(topic: str) -> dict[str, list[Article]]:
     """Fan out to all blocs in parallel, return {bloc_code: [Article, ...]}."""
     async with httpx.AsyncClient(limits=_HTTP_LIMITS, http2=True) as client:
         blocs = list(BLOC_SOURCES.values())
+        async def _safe_research_bloc(client, bloc, topic):
+            try:
+                return await asyncio.wait_for(_research_bloc(client, bloc, topic), timeout=45.0)
+            except asyncio.TimeoutError:
+                print(f"    [researcher] {bloc.code}: timed out — skipping")
+                return []
         results = await asyncio.gather(
-            *[_research_bloc(client, bloc, topic) for bloc in blocs]
+            *[_safe_research_bloc(client, bloc, topic) for bloc in blocs]
         )
     return {bloc.code: arts for bloc, arts in zip(blocs, results)}
 
