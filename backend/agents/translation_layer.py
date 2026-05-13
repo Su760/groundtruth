@@ -1,8 +1,8 @@
 import json
 import re
-import time
 import requests
 from collections import defaultdict
+from deep_translator import GoogleTranslator
 from langchain_groq import ChatGroq
 
 
@@ -42,22 +42,16 @@ def fetch_article_content(url: str, timeout: int = 8) -> str:
         return ""
 
 
-def translate_via_mymemory(text: str, langpair: str) -> str:
-    # MyMemory free API — no key needed, 5000 chars/day
-    # langpair format: "zh|en", "ru|en", "ar|en"
+def _translate_text(text: str, source_lang: str = 'auto') -> str:
+    """Translate text to English. Returns original text on any failure."""
+    if not text or len(text.strip()) < 20:
+        return text
     try:
-        text_chunk = text[:500]  # keep under limits
-        resp = requests.get(
-            "https://api.mymemory.translated.net/get",
-            params={"q": text_chunk, "langpair": langpair},
-            timeout=8,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        return data.get("responseData", {}).get("translatedText", "")
-    except Exception as e:
-        print(f"    [warn] MyMemory translation failed: {e}")
-        return ""
+        chunk = text[:4500]
+        translated = GoogleTranslator(source=source_lang, target='en').translate(chunk)
+        return translated or text
+    except Exception:
+        return text
 
 
 def run_translation_layer(state: dict) -> dict:
@@ -93,10 +87,9 @@ def run_translation_layer(state: dict) -> dict:
                 content_to_translate = existing_content[:500]
 
             if content_to_translate:
-                translated = translate_via_mymemory(content_to_translate, langpair)
-                if translated:
+                translated = _translate_text(content_to_translate, source_lang=lang_code)
+                if translated and translated != content_to_translate:
                     translated_samples.append(translated)
-                time.sleep(0.5)  # be polite to free API
 
         # Build combined context for LLM analysis
         english_coverage = "\n".join(
@@ -154,3 +147,12 @@ Return ONLY valid JSON, no markdown fences:
         translation_analysis[region] = result
 
     return {"translation_analysis": translation_analysis}
+
+
+if __name__ == '__main__':
+    test = "Taiwán es una isla en el estrecho de Taiwán con tensiones crecientes."
+    result = _translate_text(test, source_lang='es')
+    print(f'Input:  {test}')
+    print(f'Output: {result}')
+    assert 'Taiwan' in result or 'island' in result.lower(), 'Translation failed'
+    print('OK')
