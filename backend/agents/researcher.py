@@ -13,6 +13,11 @@ MIN_ARTICLES_PER_BLOC = 3
 TARGET_ARTICLES_PER_BLOC = 5
 _HTTP_LIMITS = httpx.Limits(max_connections=50, max_keepalive_connections=20)
 
+RSS_GDELT_TIMEOUT = 20.0
+FETCH_TIMEOUT = 20.0
+TAVILY_TIMEOUT = 15.0
+BLOC_TOTAL_BUDGET = 50.0
+
 
 # ---------------------------------------------------------------------------
 # Old Tavily logic — preserved as private function for fallback use
@@ -92,10 +97,17 @@ async def _research_bloc(
     topic: str,
 ) -> list[Article]:
     """Get articles for one bloc: RSS + GDELT primary, Tavily fallback."""
-    rss_urls, gdelt_urls = await asyncio.gather(
-        get_rss_urls(bloc, topic),
-        get_gdelt_urls(client, bloc, topic),
-    )
+    try:
+        rss_urls, gdelt_urls = await asyncio.wait_for(
+            asyncio.gather(
+                get_rss_urls(bloc, topic),
+                get_gdelt_urls(client, bloc, topic),
+            ),
+            timeout=RSS_GDELT_TIMEOUT,
+        )
+    except asyncio.TimeoutError:
+        print(f"    [researcher] {bloc.code}: RSS/GDELT timed out — using empty URL list")
+        rss_urls, gdelt_urls = [], []
 
     seen: set[str] = set()
     candidate_urls: list[str] = []
@@ -108,15 +120,27 @@ async def _research_bloc(
         fetch_article(client, u, bloc.code)
         for u in candidate_urls[:8]
     ]
-    articles: list[Article] = [
-        a for a in await asyncio.gather(*fetch_tasks) if a is not None
-    ]
+    try:
+        fetched = await asyncio.wait_for(
+            asyncio.gather(*fetch_tasks),
+            timeout=FETCH_TIMEOUT,
+        )
+        articles: list[Article] = [a for a in fetched if a is not None]
+    except asyncio.TimeoutError:
+        print(f"    [researcher] {bloc.code}: fetch phase timed out — continuing with 0 articles")
+        articles = []
 
     if len(articles) < MIN_ARTICLES_PER_BLOC:
         needed = TARGET_ARTICLES_PER_BLOC - len(articles)
         print(f"    [researcher] {bloc.code}: only {len(articles)} articles via RSS/GDELT — Tavily fallback for {needed} more")
-        fallback = await _tavily_fallback_async(bloc, topic, needed)
-        articles.extend(fallback)
+        try:
+            fallback = await asyncio.wait_for(
+                _tavily_fallback_async(bloc, topic, needed),
+                timeout=TAVILY_TIMEOUT,
+            )
+            articles.extend(fallback)
+        except asyncio.TimeoutError:
+            print(f"    [researcher] {bloc.code}: Tavily fallback timed out")
 
     print(f"    [researcher] {bloc.code} ({bloc.name}): {len(articles)} articles")
     return articles[:TARGET_ARTICLES_PER_BLOC]
@@ -124,14 +148,19 @@ async def _research_bloc(
 
 async def _research_all_blocs(topic: str) -> dict[str, list[Article]]:
     """Fan out to all blocs in parallel, return {bloc_code: [Article, ...]}."""
-    async with httpx.AsyncClient(limits=_HTTP_LIMITS, http2=True) as client:
+    async with httpx.AsyncClient(limits=_HTTP_LIMITS, http2=False) as client:
         blocs = list(BLOC_SOURCES.values())
+
         async def _safe_research_bloc(client, bloc, topic):
             try:
-                return await asyncio.wait_for(_research_bloc(client, bloc, topic), timeout=45.0)
+                return await asyncio.wait_for(
+                    _research_bloc(client, bloc, topic),
+                    timeout=BLOC_TOTAL_BUDGET,
+                )
             except asyncio.TimeoutError:
-                print(f"    [researcher] {bloc.code}: timed out — skipping")
+                print(f"    [researcher] {bloc.code}: bloc total budget exceeded — skipping")
                 return []
+
         results = await asyncio.gather(
             *[_safe_research_bloc(client, bloc, topic) for bloc in blocs]
         )
