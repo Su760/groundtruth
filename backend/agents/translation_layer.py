@@ -4,6 +4,7 @@ import requests
 from collections import defaultdict
 from deep_translator import GoogleTranslator
 from langchain_groq import ChatGroq
+from backend.agents import article_cache
 
 
 NON_ENGLISH_BLOCS = {"China", "Russia", "Middle East"}
@@ -87,7 +88,13 @@ def run_translation_layer(state: dict) -> dict:
                 content_to_translate = existing_content[:500]
 
             if content_to_translate:
-                translated = _translate_text(content_to_translate, source_lang=lang_code)
+                cached_translation = article_cache.get_translation(url) if url else None
+                if cached_translation:
+                    translated = cached_translation
+                else:
+                    translated = _translate_text(content_to_translate, source_lang=lang_code)
+                    if translated and translated != content_to_translate and url:
+                        article_cache.put_translation(url, translated)
                 if translated and translated != content_to_translate:
                     translated_samples.append(translated)
 
