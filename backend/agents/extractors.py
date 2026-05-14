@@ -27,6 +27,11 @@ async def fetch_article(
     timeout: float = 10.0,
 ) -> Article | None:
     """Fetch URL, extract body with trafilatura. Returns None on any failure."""
+    from . import article_cache
+    cached = article_cache.get_cached(url)
+    if cached:
+        return cached
+
     try:
         r = await client.get(url, headers=_HEADERS, timeout=timeout, follow_redirects=True)
         if r.status_code != 200 or len(r.text) < 500:
@@ -43,7 +48,7 @@ async def fetch_article(
         meta = trafilatura.extract_metadata(r.text)
         title = (meta.title if meta and meta.title else None) or url
         domain = urlparse(url).netloc.replace('www.', '')
-        return Article(
+        article = Article(
             url=url,
             title=title,
             body=body[:8000],
@@ -52,5 +57,7 @@ async def fetch_article(
             published=meta.date if meta else None,
             language=meta.language if meta else None,
         )
+        article_cache.put(article)
+        return article
     except Exception:
         return None
