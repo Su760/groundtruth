@@ -1,0 +1,364 @@
+/*
+ * GroundTruth Design System — v0.4
+ *
+ * Fonts:
+ *   Fraunces — serif display (Google Fonts ✓)
+ *   Inter — sans body (Geist fallback; Geist is Vercel-only, not on Google Fonts)
+ *   JetBrains Mono — mono labels (Geist Mono fallback; same reason)
+ */
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
+
+/* ─── TOKENS ──────────────────────────────────────────────────────────── */
+
+:root {
+  /* Backgrounds */
+  --bg-0: #0a0a0b;
+  --bg-1: #111113;
+  --bg-2: #16161a;
+  --bg-3: #1c1c22;
+  --bg-4: #24242c;
+
+  /* Ink (text) */
+  --ink-0: #f4f3ee;
+  --ink-1: #b9b6ad;
+  --ink-2: #8e8c85;
+  --ink-3: #5a5853;
+  --ink-4: #3a3935;
+
+  /* Signal & accents */
+  --signal: #c8302c;
+  --signal-dim: #8e2420;
+  --signal-glow: rgba(200, 48, 44, 0.08);
+  --amber: #d4a24a;
+  --amber-dim: #8a6a30;
+  --steel: #6b8aa8;
+  --phosphor: #7fb069;
+  --phosphor-dim: #4a6b3e;
+
+  /* Hairlines */
+  --hairline: #1a1a1f;
+  --hairline-strong: #2a2a32;
+
+  /* Bloc identifiers — 8 distinct hues */
+  --bloc-cn: #c8302c; /* China — red          */
+  --bloc-ru: #d4a24a; /* Russia — amber        */
+  --bloc-me: #6b8aa8; /* Middle East — steel   */
+  --bloc-eu: #8b6cb6; /* Europe — violet       */
+  --bloc-ws: #7fb069; /* Wire Services — phosphor */
+  --bloc-us: #4a8fb8; /* US/Western — blue     */
+  --bloc-in: #d97742; /* India — orange        */
+  --bloc-gs: #b89a4f; /* Global South — gold   */
+
+  /* Type families */
+  --serif: "Fraunces", Georgia, serif;
+  --sans: "Geist", "Inter", system-ui, sans-serif;
+  --mono: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* ─── BASE ────────────────────────────────────────────────────────────── */
+
+.gt-root {
+  background: var(--bg-0);
+  color: var(--ink-0);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* Dot-grid texture — low-opacity radial dots on a pseudo-element */
+.gt-texture {
+  position: relative;
+}
+.gt-texture::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(
+    circle,
+    rgba(58, 57, 53, 0.6) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 0;
+}
+.gt-texture > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Thin custom scrollbar */
+.gt-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-4) transparent;
+}
+.gt-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.gt-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.gt-scroll::-webkit-scrollbar-thumb {
+  background: var(--ink-4);
+  border-radius: 2px;
+}
+
+/* ─── HEADER ──────────────────────────────────────────────────────────── */
+
+.gt-header {
+  height: 49px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--hairline);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.gt-crumb {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+.gt-crumb-link {
+  cursor: pointer;
+  transition: color 0.15s var(--ease-out);
+}
+.gt-crumb-link:hover {
+  color: var(--ink-1);
+}
+.gt-crumb-sep {
+  color: var(--ink-4);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+/* ─── TYPOGRAPHY ──────────────────────────────────────────────────────── */
+
+.gt-mono {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.gt-body {
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--ink-1);
+  line-height: 1.55;
+}
+
+.gt-meta {
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+/* ─── CARDS ───────────────────────────────────────────────────────────── */
+
+.gt-card {
+  background: var(--bg-2);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+}
+
+.gt-card-hover {
+  transition: all 0.18s var(--ease-out);
+}
+.gt-card-hover:hover {
+  border-color: var(--hairline-strong);
+  transform: translateY(-1px);
+}
+
+/* ─── BUTTONS ─────────────────────────────────────────────────────────── */
+
+.gt-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s var(--ease-out);
+  text-transform: uppercase;
+}
+
+.gt-btn-primary {
+  background: var(--signal);
+  color: #fff;
+}
+.gt-btn-primary:hover {
+  filter: brightness(1.12);
+}
+
+.gt-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--hairline-strong);
+  color: var(--ink-1);
+}
+.gt-btn-ghost:hover {
+  border-color: var(--ink-3);
+  color: var(--ink-0);
+}
+
+/* ─── INPUT ───────────────────────────────────────────────────────────── */
+
+.gt-input {
+  background: var(--bg-2);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 4px;
+  padding: 12px 16px;
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--ink-0);
+  outline: none;
+  transition: border-color 0.15s var(--ease-out);
+  width: 100%;
+}
+.gt-input::placeholder {
+  color: var(--ink-3);
+}
+.gt-input:focus {
+  border-color: var(--signal-dim);
+}
+
+/* ─── BLOC CHIP ───────────────────────────────────────────────────────── */
+
+.gt-bloc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 3px;
+  background: var(--bg-2);
+  border: 1px solid var(--hairline);
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-1);
+}
+
+.gt-bloc-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.gt-bloc-code {
+  border: 1px solid var(--hairline-strong);
+  padding: 1px 5px;
+  border-radius: 2px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-3);
+}
+
+/* ─── SOURCE CHIP ─────────────────────────────────────────────────────── */
+
+.gt-source-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--hairline);
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--ink-2);
+}
+
+.gt-source-chip-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ─── DOTS ────────────────────────────────────────────────────────────── */
+
+.gt-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gt-dot {
+  border-radius: 50%;
+  background: var(--ink-4);
+  transition: all 0.18s var(--ease-out);
+  flex-shrink: 0;
+}
+.gt-dot.active.signal {
+  background: var(--signal);
+}
+.gt-dot.active.amber {
+  background: var(--amber);
+}
+.gt-dot.active.phosphor {
+  background: var(--phosphor);
+}
+.gt-dot.active.steel {
+  background: var(--steel);
+}
+
+/* ─── SPARKLINE ───────────────────────────────────────────────────────── */
+
+.gt-spark {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.gt-spark-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ─── MOTION ──────────────────────────────────────────────────────────── */
+
+@keyframes gtPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.gt-pulse {
+  animation: gtPulse 1.4s var(--ease-out) infinite;
+}
+
+/* ─── HIGHLIGHTS ──────────────────────────────────────────────────────── */
+
+.gt-highlight {
+  display: inline;
+  background: var(--signal-glow);
+  color: var(--ink-0);
+  padding: 0 3px;
+  border-bottom: 1px solid var(--signal-dim);
+}
+
+.gt-highlight-amber {
+  display: inline;
+  background: rgba(212, 162, 74, 0.1);
+  color: var(--ink-0);
+  padding: 0 3px;
+  border-bottom: 1px solid var(--amber-dim);
+}

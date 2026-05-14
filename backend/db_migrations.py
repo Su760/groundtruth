@@ -7,16 +7,20 @@ Usage:
 """
 from pathlib import Path
 
+MIGRATIONS_DIR = Path(__file__).parent / "migrations"
+
 
 def main():
-    sql_path = Path(__file__).parent / "migrations" / "001_create_tables.sql"
-    sql = sql_path.read_text(encoding="utf-8")
-    print("=" * 60)
-    print("Paste the following SQL into your Supabase SQL Editor")
-    print("(Dashboard → SQL Editor → New query):")
-    print("=" * 60)
-    print()
-    print(sql)
+    migration_files = sorted(MIGRATIONS_DIR.glob("*.sql"))
+    for path in migration_files:
+        print("=" * 60)
+        print(f"Migration: {path.name}")
+        print("Paste the following SQL into your Supabase SQL Editor")
+        print("(Dashboard → SQL Editor → New query):")
+        print("=" * 60)
+        print()
+        print(path.read_text(encoding="utf-8"))
+        print()
 
 
 if __name__ == "__main__":

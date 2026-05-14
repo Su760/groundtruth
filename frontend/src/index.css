@@ -6,7 +6,7 @@
   body {
     background: #0a0a0a;
     color: #e5e5e5;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: "Inter", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -17,7 +17,7 @@
 
 /* Markdown report styling */
 .report-content h1 {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   font-size: 1.5rem;
   font-weight: 700;
   color: #e5e5e5;
@@ -62,7 +62,7 @@
 }
 
 .report-content ul li::before {
-  content: '—';
+  content: "—";
   position: absolute;
   left: 0;
   color: #444;
@@ -103,7 +103,7 @@
 }
 
 .report-content code {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
   font-size: 0.85em;
   background: #1a1a1a;
   padding: 0.15em 0.4em;

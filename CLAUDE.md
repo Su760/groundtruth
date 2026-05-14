@@ -51,6 +51,7 @@ planner → researcher → bias_detector → perspective_analyst → propaganda_
 - Root [main.py](main.py) — thin CLI wrapper that delegates to `backend.main`
 
 SSE event format:
+
 ```json
 {"type": "progress", "agent": "planner", "message": "Planner complete"}
 {"type": "done", "report": "<full markdown string>"}
@@ -69,17 +70,18 @@ SSE is consumed via `fetch()` + `ReadableStream` reader (not `EventSource` — P
 
 ### Agent responsibilities
 
-| Agent | Input used | Output field |
-|---|---|---|
-| planner | `topic` | `angles` |
-| researcher | `topic` | `raw_research` (6 Tavily searches by region, deduped by URL, content truncated to 800 chars) |
-| bias_detector | `raw_research` | `bias_report` (grouped by source_name, one LLM call each) |
-| perspective_analyst | `raw_research`, `topic` | `perspective_analysis` (grouped by region) |
-| propaganda_mapper | `raw_research` | `propaganda_report` (grouped by source_name) |
-| fact_checker | `raw_research`, `topic` | `fact_check`, `confidence_score` (two-pass: extract claims → cross-reference) |
-| synthesizer | all prior fields | `final_report`, `disclaimer` |
+| Agent               | Input used              | Output field                                                                                 |
+| ------------------- | ----------------------- | -------------------------------------------------------------------------------------------- |
+| planner             | `topic`                 | `angles`                                                                                     |
+| researcher          | `topic`                 | `raw_research` (6 Tavily searches by region, deduped by URL, content truncated to 800 chars) |
+| bias_detector       | `raw_research`          | `bias_report` (grouped by source_name, one LLM call each)                                    |
+| perspective_analyst | `raw_research`, `topic` | `perspective_analysis` (grouped by region)                                                   |
+| propaganda_mapper   | `raw_research`          | `propaganda_report` (grouped by source_name)                                                 |
+| fact_checker        | `raw_research`, `topic` | `fact_check`, `confidence_score` (two-pass: extract claims → cross-reference)                |
+| synthesizer         | all prior fields        | `final_report`, `disclaimer`                                                                 |
 
 ### Confidence score formula
+
 `region_diversity * 0.4 + wire_factor * 0.3 + confirmed_ratio * 0.3`
 where `wire_factor = 1.0` if Wire Services (Reuters/AP) returned results, else `0.5`.
 
