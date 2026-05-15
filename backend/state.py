@@ -10,7 +10,10 @@ class GroundTruthState(TypedDict):
     user_profile: dict             # from frontend: {expertise_level, tone, depth, emphasized_blocs, goal, frustration}
     bias_report: List[dict]        # from BiasDetector: {source_name, bias_score, flags}
     perspective_analysis: dict     # from PerspectiveAnalyst: {region: {framing, why, interests_served, propaganda_vs_perspective}}
-    propaganda_report: List[dict]  # from PropagandaMapper: {source_name, techniques, examples}
+    propaganda_report: List[dict]  # from PropagandaMapper: {source_name, primary_techniques, secondary_techniques, examples}
+    propaganda_analysis: str       # from PropagandaMapper: LLM narrative explaining technique patterns by region
+    propaganda_techniques_per_region: dict  # from PropagandaMapper: {region: {technique: count}} — classifier-derived, deterministic
+    per_article_techniques: List[dict]      # from PropagandaMapper: [{url, source, region, techniques}]
     fact_check: dict               # from FactChecker: {confirmed, disputed, unverified}
     confidence_score: float        # 0-1, how confident is the analysis
     sources: List[dict]            # [{title, url, agent}] — from Researcher + ContextHistorian

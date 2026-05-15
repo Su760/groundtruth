@@ -1,111 +1,116 @@
-import json
-import re
 from collections import defaultdict
 from langchain_groq import ChatGroq
 
-
-PROPAGANDA_TECHNIQUES = [
-    # Emotional manipulation
-    "Appeal to fear",
-    "Appeal to authority",
-    "Appeal to popularity (Bandwagon)",
-    "Appeal to nature",
-    "Appeal to tradition",
-    "Loaded language",
-    "Exaggeration or minimization",
-    # Logic manipulation
-    "Whataboutism",
-    "False equivalence",
-    "False dilemma (Black-and-white fallacy)",
-    "Causal oversimplification",
-    "Straw man",
-    "Red herring",
-    "Reductio ad Hitlerum",
-    # Source manipulation
-    "Appeal to authority (False authority)",
-    "Doubt casting",
-    "Smear campaign",
-    "Name-calling or labeling",
-    # Structural manipulation
-    "Selective omission",
-    "Repetition",
-    "Obfuscation or vagueness",
-    "Hero/villain framing",
-    "Dehumanization",
-]
+from backend.agents.propaganda_classifier import detect_techniques
 
 
-def parse_json_response(raw: str, fallback):
-    cleaned = re.sub(r"^```(?:json)?\s*", "", raw.strip(), flags=re.MULTILINE)
-    cleaned = re.sub(r"\s*```$", "", cleaned.strip(), flags=re.MULTILINE)
-    try:
-        return json.loads(cleaned.strip())
-    except json.JSONDecodeError:
-        return fallback
+def _format_region_table(region_techniques: dict[str, dict[str, int]]) -> str:
+    """Format {region: {technique: count}} as a markdown table for the LLM prompt."""
+    if not region_techniques:
+        return "(no techniques detected)"
+    lines = ["| Region | Technique | Count |", "|---|---|---|"]
+    for region, techs in sorted(region_techniques.items()):
+        for technique, count in sorted(techs.items(), key=lambda x: -x[1]):
+            lines.append(f"| {region} | {technique} | {count} |")
+    return "\n".join(lines)
+
+
+def _format_examples(per_article_techniques: list[dict], max_per_technique: int = 2) -> str:
+    """Format per-article technique hits as compact bullet examples for the LLM prompt."""
+    seen: dict[str, int] = {}
+    lines = []
+    for entry in per_article_techniques:
+        for t in entry["techniques"]:
+            name = t["technique"]
+            if seen.get(name, 0) >= max_per_technique:
+                continue
+            seen[name] = seen.get(name, 0) + 1
+            excerpt = entry.get("content_excerpt", "")
+            lines.append(
+                f"- **{name}** ({entry['source']} / {entry['region']}): {excerpt[:200]}"
+            )
+    return "\n".join(lines) if lines else "(no examples)"
 
 
 def run_propaganda_mapper(state: dict) -> dict:
-    llm = ChatGroq(model="llama-3.3-70b-versatile")
-    raw_research = state["raw_research"]
-    propaganda_report = []
+    raw_research = state.get("raw_research", [])
 
-    grouped: dict = defaultdict(list)
+    # 1. Run classifier on each article
+    per_article_techniques: list[dict] = []
     for item in raw_research:
-        grouped[item["source_name"]].append(item)
+        techniques = detect_techniques(item.get("content", ""))
+        if techniques:
+            per_article_techniques.append({
+                "url": item.get("url", ""),
+                "source": item.get("source_name", ""),
+                "region": item.get("region", ""),
+                "techniques": techniques,
+                "content_excerpt": item.get("content", "")[:300],
+            })
 
-    techniques_list = "\n".join(f"- {t}" for t in PROPAGANDA_TECHNIQUES)
+    # 2. Aggregate technique counts by region
+    region_techniques: dict[str, dict[str, int]] = {}
+    for entry in per_article_techniques:
+        region = entry["region"]
+        if region not in region_techniques:
+            region_techniques[region] = {}
+        for t in entry["techniques"]:
+            name = t["technique"]
+            region_techniques[region][name] = region_techniques[region].get(name, 0) + 1
 
-    for source_name, articles in grouped.items():
-        combined = "\n\n---\n\n".join(
-            f"[{a['url']}]\n{a['content']}"
-            for a in articles
-        )
+    # 3. LLM writes the narrative using classifier-derived labels
+    llm = ChatGroq(model="llama-3.3-70b-versatile")
+    llm_prompt = f"""You are analyzing how different geopolitical blocs use propaganda techniques in news coverage. A deterministic classifier has identified the following techniques across {len(raw_research)} articles:
 
-        prompt = f"""You are a propaganda analysis expert trained in the 23 internationally-validated propaganda techniques (SemEval taxonomy) used by state and partisan media.
+{_format_region_table(region_techniques)}
 
-Source being analyzed: "{source_name}"
+Example articles per technique:
+{_format_examples(per_article_techniques, max_per_technique=2)}
 
-Content:
-{combined[:2000]}
+Write a propaganda analysis with:
+- Which techniques appear most in each region and why they are strategically useful for that bloc
+- Specific examples from the articles with brief quoted evidence
+- One-sentence interpretation of each technique's strategic purpose in context
 
-Identify which of the following 23 propaganda techniques appear in this content. ONLY include techniques that are actually present with clear textual evidence. Do not fabricate detections.
+Use markdown. Be concrete. Cite source domains where possible. Focus on patterns, not individual articles."""
 
-Techniques to check for:
-{techniques_list}
+    narrative = llm.invoke(llm_prompt).content
 
-Detection instructions:
-- PRIMARY techniques: dominant patterns that define the overall framing of this content
-- SECONDARY techniques: present but not the main rhetorical strategy
-- For each technique found, provide the technique name, a direct quote from the text as evidence, and a 1-sentence explanation of WHY this qualifies as that technique
-- If a technique is borderline, note it as "possible: <technique>" in examples
+    # 4. Build source-level report (backward-compat shape for synthesizer + tracker)
+    by_source: dict[str, dict] = defaultdict(lambda: {
+        "primary_techniques": [],
+        "secondary_techniques": [],
+        "examples": [],
+    })
+    for entry in per_article_techniques:
+        source = entry["source"]
+        for t in entry["techniques"]:
+            name = t["technique"]
+            score = t["score"]
+            target = by_source[source]["primary_techniques"] if score >= 0.7 else by_source[source]["secondary_techniques"]
+            if name not in target:
+                target.append(name)
 
-Respond with ONLY a JSON object. No markdown fences, no explanation:
-{{
-  "source_name": "{source_name}",
-  "primary_techniques": ["<technique name>", ...],
-  "secondary_techniques": ["<technique name>", ...],
-  "examples": [
-    "<technique>: '<quoted text>' — <1-sentence explanation>",
-    ...
-  ]
-}}
-
-If no propaganda techniques are clearly present, return empty arrays for all fields."""
-
-        response = llm.invoke(prompt)
-        result = parse_json_response(response.content, {
-            "source_name": source_name,
-            "primary_techniques": [],
-            "secondary_techniques": [],
+    propaganda_report: list[dict] = [
+        {
+            "source_name": source,
+            "primary_techniques": data["primary_techniques"],
+            "secondary_techniques": data["secondary_techniques"],
             "examples": [],
-        })
-        result["source_name"] = source_name
-        if not isinstance(result.get("primary_techniques"), list):
-            result["primary_techniques"] = []
-        if not isinstance(result.get("secondary_techniques"), list):
-            result["secondary_techniques"] = []
-        if not isinstance(result.get("examples"), list):
-            result["examples"] = []
-        propaganda_report.append(result)
+        }
+        for source, data in by_source.items()
+    ]
 
-    return {"propaganda_report": propaganda_report}
+    # If classifier found nothing at all, return an empty-but-valid report
+    if not propaganda_report:
+        propaganda_report = []
+
+    return {
+        "propaganda_report": propaganda_report,
+        "propaganda_analysis": narrative,
+        "propaganda_techniques_per_region": region_techniques,
+        "per_article_techniques": [
+            {k: v for k, v in e.items() if k != "content_excerpt"}
+            for e in per_article_techniques
+        ],
+    }

@@ -34,22 +34,13 @@ def save_analysis(accumulated: dict) -> str | None:
 
         # Insert bloc snapshots from perspective_analysis
         perspective_analysis = accumulated.get("perspective_analysis", {})
-        propaganda_report = accumulated.get("propaganda_report", [])
 
-        # Build lookup: source_name → primary_techniques
-        propaganda_by_source = {}
-        for p in propaganda_report:
-            source = p.get("source_name", "")
-            propaganda_by_source[source] = p.get("primary_techniques", [])
+        # Direct region → techniques lookup from classifier output (exact match, not fuzzy)
+        region_techniques = accumulated.get("propaganda_techniques_per_region", {})
 
         snapshots = []
         for region, data in perspective_analysis.items():
-            # Fuzzy-match source name to find propaganda techniques
-            techniques = []
-            for source_key, techs in propaganda_by_source.items():
-                if region.lower() in source_key.lower() or source_key.lower() in region.lower():
-                    techniques = techs
-                    break
+            techniques = list(region_techniques.get(region, {}).keys())[:5]
 
             snapshots.append({
                 "analysis_id": analysis_id,
