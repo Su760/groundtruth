@@ -82,12 +82,17 @@ def run_synthesizer(state: dict) -> dict:
         for b in bias_report
     )
 
+    def _cap(text: str, limit: int = 800) -> str:
+        return text if len(text) <= limit else text[:limit] + " ... [truncated]"
+
     perspective_summary = "\n\n".join(
-        f"**{region} Power Bloc**\n"
-        f"Narrative: {data.get('narrative_frame', 'N/A')}\n"
-        f"Why they frame it this way: {data.get('structural_interests', 'N/A')}\n"
-        f"What they gain: {data.get('what_this_bloc_gains', 'N/A')}\n"
-        f"Coordinated vs organic: {data.get('deliberate_vs_organic', 'N/A')}"
+        _cap(
+            f"**{region} Power Bloc**\n"
+            f"Narrative: {data.get('narrative_frame', 'N/A')}\n"
+            f"Why they frame it this way: {data.get('structural_interests', 'N/A')}\n"
+            f"What they gain: {data.get('what_this_bloc_gains', 'N/A')}\n"
+            f"Coordinated vs organic: {data.get('deliberate_vs_organic', 'N/A')}"
+        )
         for region, data in perspective_analysis.items()
     )
 
@@ -102,10 +107,12 @@ def run_synthesizer(state: dict) -> dict:
     ) or "No non-English source content analyzed."
 
     propaganda_summary = "\n".join(
-        f"- {p.get('source_name', 'Unknown')}: "
-        f"PRIMARY: [{', '.join(p.get('primary_techniques', []))}] | "
-        f"SECONDARY: [{', '.join(p.get('secondary_techniques', []))}]\n"
-        f"  {chr(10).join('  ' + ex for ex in p.get('examples', []))}"
+        _cap(
+            f"- {p.get('source_name', 'Unknown')}: "
+            f"PRIMARY: [{', '.join(p.get('primary_techniques', []))}] | "
+            f"SECONDARY: [{', '.join(p.get('secondary_techniques', []))}]\n"
+            f"  {chr(10).join('  ' + ex for ex in p.get('examples', []))}"
+        )
         for p in propaganda_report
         if p.get("primary_techniques") or p.get("secondary_techniques")
     )

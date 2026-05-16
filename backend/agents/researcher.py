@@ -281,13 +281,14 @@ def run_researcher(state: dict) -> dict:
 
     for bloc_code, articles in articles_by_bloc.items():
         bloc = BLOC_SOURCES[bloc_code]
-        for a in articles:
+        top_articles = sorted(articles, key=lambda a: len(a.body), reverse=True)[:3]
+        for a in top_articles:
             if a.url in seen_urls:
                 continue
             seen_urls.add(a.url)
             raw_research.append({
                 'url': a.url,
-                'content': a.body[:800],
+                'content': a.body[:400],
                 'source_name': a.source_domain,
                 'region': bloc.name,
             })
