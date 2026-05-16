@@ -89,3 +89,33 @@ async def test_handles_feed_parse_error_gracefully():
         bloc = BlocSources(code='XX', name='Test', rss_feeds=['http://bad.feed/rss'])
         urls = await get_rss_urls(bloc, ['Taiwan'])
     assert urls == []
+
+
+@pytest.mark.asyncio
+async def test_matches_diacritic_variants():
+    """RSS title 'Taiwán crisis' should match query 'Taiwan'."""
+    entries = [
+        _make_entry('Taiwán crisis escalates', 'Tensions rise', 'http://gs.com/1'),
+        _make_entry('Unrelated local news', '', 'http://gs.com/2'),
+    ]
+    mock_feed = _make_feed(entries)
+    with patch('backend.agents.rss_fetcher.feedparser') as mock_fp:
+        mock_fp.parse.return_value = mock_feed
+        bloc = BlocSources(code='GS', name='Global South', rss_feeds=['http://fake.feed/rss'])
+        urls = await get_rss_urls(bloc, ['Taiwan'], max_per_feed=10)
+    assert 'http://gs.com/1' in urls, "Diacritic 'Taiwán' should match query 'Taiwan'"
+    assert 'http://gs.com/2' not in urls
+
+
+@pytest.mark.asyncio
+async def test_matches_uppercase_diacritic():
+    """RSS title 'TAIWÁN' should match query 'Taiwan'."""
+    entries = [
+        _make_entry('TAIWÁN STRAIT TENSIONS', '', 'http://gs.com/3'),
+    ]
+    mock_feed = _make_feed(entries)
+    with patch('backend.agents.rss_fetcher.feedparser') as mock_fp:
+        mock_fp.parse.return_value = mock_feed
+        bloc = BlocSources(code='GS', name='Global South', rss_feeds=['http://fake.feed/rss'])
+        urls = await get_rss_urls(bloc, ['Taiwan'], max_per_feed=10)
+    assert 'http://gs.com/3' in urls, "Uppercase diacritic 'TAIWÁN' should match query 'Taiwan'"
