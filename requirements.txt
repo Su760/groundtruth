@@ -14,3 +14,4 @@ trafilatura>=1.12.0
 httpx[http2]>=0.27.0
 supabase
 deep-translator>=1.11.4
+exa-py>=1.0.0
