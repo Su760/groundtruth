@@ -1,10 +1,14 @@
+import asyncio
 import json
 import re
 import requests
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from deep_translator import GoogleTranslator
 from langchain_groq import ChatGroq
 from backend.agents import article_cache
+
+_TRANSLATE_POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix='translate')
 
 
 NON_ENGLISH_BLOCS = {"China", "Russia", "Middle East"}
@@ -55,6 +59,18 @@ def _translate_text(text: str, source_lang: str = 'auto') -> str:
         return text
 
 
+async def _translate_text_async(text: str, source_lang: str = 'auto', timeout: float = 8.0) -> str:
+    """Async wrapper for _translate_text with hard timeout. Returns original on timeout/error."""
+    if not text or len(text.strip()) < 20:
+        return text
+    loop = asyncio.get_event_loop()
+    try:
+        future = loop.run_in_executor(_TRANSLATE_POOL, _translate_text, text, source_lang)
+        return await asyncio.wait_for(future, timeout=timeout)
+    except (asyncio.TimeoutError, Exception):
+        return text
+
+
 def run_translation_layer(state: dict) -> dict:
     raw_research = state["raw_research"]
     topic = state["topic"]
@@ -72,14 +88,13 @@ def run_translation_layer(state: dict) -> dict:
 
         print(f"    [translation_layer] Processing {region} ({len(articles)} articles)...")
 
-        for article in articles[:3]:  # max 3 articles per bloc to stay within API limits
+        # Gather translation inputs
+        to_translate: list[tuple[str, str, str]] = []  # (content, lang_code, url)
+        for article in articles[:3]:
             url = article.get("url", "")
             existing_content = article.get("content", "")
-
-            # Try to fetch actual URL content first
             fetched = fetch_article_content(url)
 
-            # Decide which content to try translating
             content_to_translate = ""
             if fetched and is_likely_non_english(fetched):
                 content_to_translate = fetched[:500]
@@ -90,19 +105,29 @@ def run_translation_layer(state: dict) -> dict:
             if content_to_translate:
                 cached_translation = article_cache.get_translation(url) if url else None
                 if cached_translation:
-                    translated = cached_translation
+                    if cached_translation != content_to_translate:
+                        translated_samples.append(cached_translation)
                 else:
-                    translated = _translate_text(content_to_translate, source_lang=lang_code)
-                    if translated and translated != content_to_translate and url:
+                    to_translate.append((content_to_translate, lang_code, url))
+
+        # Run remaining translations concurrently with per-call timeout
+        if to_translate:
+            async def _run_translations():
+                return await asyncio.gather(*[
+                    _translate_text_async(content, lang, timeout=8.0)
+                    for content, lang, _ in to_translate
+                ])
+            translated_results = asyncio.run(_run_translations())
+            for (content, lang, url), translated in zip(to_translate, translated_results):
+                if translated and translated != content:
+                    if url:
                         article_cache.put_translation(url, translated)
-                if translated and translated != content_to_translate:
                     translated_samples.append(translated)
 
         # Build combined context for LLM analysis
         english_coverage = "\n".join(
             a.get("content", "")[:300] for a in articles[:3]
         )
-
         translated_context = "\n\n---\n\n".join(translated_samples) if translated_samples else ""
 
         llm = ChatGroq(model="llama-3.3-70b-versatile")
