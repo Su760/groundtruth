@@ -1,9 +1,10 @@
-from typing import TypedDict, List
+from typing import TypedDict, List, Optional
 
 
 class GroundTruthState(TypedDict):
     topic: str
     angles: List[str]              # from Planner: 4-5 specific investigation angles
+    bloc_queries: Optional[dict]   # from Planner: {bloc_code: {literal, entity, framing}}
     raw_research: List[dict]       # from Researcher: {url, content, source_name, region}
     historical_context: dict       # from ContextHistorian: {timeline, root_causes, why_it_matters_now, key_players_history}
     translation_analysis: dict     # from TranslationLayer: {region: {original_language, translated_samples, naming_conventions, emphasis_patterns, omission_patterns, voice_patterns, key_phrase_differences}}
