@@ -1,43 +1,29 @@
-"""Smoke test for the SemEval propaganda classifier.
-
-First run downloads the model (~300MB) — allow 1-2 minutes.
-Subsequent runs use the ~/.cache/huggingface/ cache and are instant.
+"""Smoke test for the SemEval propaganda classifier (Groq LLM backend).
 
 Usage:
     python -m backend.scripts.test_propaganda_classifier
 """
-import time
+from dotenv import load_dotenv
+load_dotenv()
 
-from backend.agents.propaganda_classifier import detect_techniques
+from backend.agents.propaganda_classifier import detect_techniques, detect_techniques_batch
 
 samples = [
-    (
-        "Russia announces special military operation to protect ethnic Russians",
-        "Should detect: Loaded_Language or Appeal_to_Fear",
-    ),
-    (
-        "The president, who has lied repeatedly, claims victory",
-        "Should detect: Name_Calling or Doubt",
-    ),
-    (
-        "Either we act now or we lose everything",
-        "Should detect: Black_and_White_Fallacy or Appeal_to_Fear",
-    ),
-    (
-        "The weather is mild today and the streets are calm.",
-        "Should detect: nothing (neutral text)",
-    ),
+    "Russia announces special military operation to protect ethnic Russians",
+    "The president, who has lied repeatedly, claims victory",
+    "Either we act now or we lose everything",
+    "The weather is mild today and the streets are calm.",
 ]
 
-print("Loading classifier (first call may download model — allow 1-2 min)...")
-t0 = time.time()
+print("=== Single-call API ===")
+for s in samples:
+    print(f"\n{s}")
+    print(f"  → {detect_techniques(s, threshold=0.4)}")
 
-for text, expected in samples:
-    techniques = detect_techniques(text, threshold=0.3)
-    print(f"\nInput:    {text}")
-    print(f"Expected: {expected}")
-    print(f"Detected: {techniques if techniques else '(none)'}")
+print("\n=== Batched API ===")
+batched = detect_techniques_batch(samples, threshold=0.4)
+for s, t in zip(samples, batched):
+    print(f"\n{s}")
+    print(f"  → {t}")
 
-elapsed = time.time() - t0
-print(f"\nTotal time: {elapsed:.1f}s")
-print("\nSMOKE TEST DONE — review detections above against expected labels.")
+print("\nSMOKE TEST DONE")
