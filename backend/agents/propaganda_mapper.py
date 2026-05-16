@@ -1,7 +1,7 @@
 from collections import defaultdict
 from langchain_groq import ChatGroq
 
-from backend.agents.propaganda_classifier import detect_techniques
+from backend.agents.propaganda_classifier import detect_techniques_batch
 
 
 def _format_region_table(region_techniques: dict[str, dict[str, int]]) -> str:
@@ -35,10 +35,11 @@ def _format_examples(per_article_techniques: list[dict], max_per_technique: int 
 def run_propaganda_mapper(state: dict) -> dict:
     raw_research = state.get("raw_research", [])
 
-    # 1. Run classifier on each article
+    # 1. Batch-classify all articles in one LLM call
+    texts = [item.get("content", "") for item in raw_research]
+    all_techniques = detect_techniques_batch(texts)
     per_article_techniques: list[dict] = []
-    for item in raw_research:
-        techniques = detect_techniques(item.get("content", ""))
+    for item, techniques in zip(raw_research, all_techniques):
         if techniques:
             per_article_techniques.append({
                 "url": item.get("url", ""),

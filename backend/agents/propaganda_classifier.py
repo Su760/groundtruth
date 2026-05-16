@@ -67,3 +67,65 @@ def detect_techniques(text: str, threshold: float = 0.5) -> list[dict]:
     except Exception as e:
         print(f"    [propaganda_classifier] failed: {e}")
         return []
+
+
+def detect_techniques_batch(
+    texts: list[str],
+    threshold: float = 0.5,
+) -> list[list[dict]]:
+    """Classify N articles in ONE LLM call. Returns one list of techniques per input text.
+    Length and order are preserved even for empty/short texts."""
+    if not texts:
+        return []
+
+    valid_indices: list[int] = []
+    valid_texts: list[str] = []
+    for i, t in enumerate(texts):
+        if t and len(t.strip()) >= 50:
+            valid_indices.append(i)
+            valid_texts.append(t[:1500])
+
+    if not valid_texts:
+        return [[] for _ in texts]
+
+    numbered = '\n'.join(f"--- TEXT {i} ---\n{t}" for i, t in enumerate(valid_texts))
+    prompt = f"""You are a propaganda technique classifier using the SemEval-2023 Task 3 taxonomy.
+
+Analyze the {len(valid_texts)} numbered texts below. For EACH text, return a JSON object
+with the article number as the key (as a string) and a list of detected techniques as the value.
+Each technique must have: {{"technique": "<name>", "score": <0.0-1.0>}}
+Only include techniques with score >= 0.4.
+If no techniques are present for a text, return an empty list for that key.
+
+Valid techniques:
+{_TECHNIQUE_LIST}
+
+Texts to analyze:
+{numbered}
+
+Return ONLY a JSON object in this exact shape, no other text:
+{{"0": [...], "1": [...], ..., "{len(valid_texts) - 1}": [...]}}"""
+
+    try:
+        llm = _get_llm()
+        response = llm.invoke(prompt).content.strip()
+        if response.startswith("```"):
+            response = response.split("```")[1]
+            if response.startswith("json"):
+                response = response[4:]
+        parsed = json.loads(response)
+
+        results: list[list[dict]] = [[] for _ in texts]
+        for batch_idx, orig_idx in enumerate(valid_indices):
+            techs = parsed.get(str(batch_idx), [])
+            results[orig_idx] = [
+                {"technique": r["technique"], "score": float(r["score"])}
+                for r in techs
+                if isinstance(r, dict)
+                and r.get("technique") in SEMEVAL_TECHNIQUES
+                and float(r.get("score", 0)) >= threshold
+            ]
+        return results
+    except Exception as e:
+        print(f"    [propaganda_classifier] batch failed: {e}")
+        return [[] for _ in texts]
