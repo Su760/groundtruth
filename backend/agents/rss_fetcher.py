@@ -7,14 +7,16 @@ from .sources import BlocSources
 
 async def get_rss_urls(
     bloc: BlocSources,
-    topic: str,
+    queries: list[str],
     max_per_feed: int = 10,
 ) -> list[str]:
-    """Pull RSS feeds for a bloc, filter entries by topic relevance."""
+    """Pull RSS feeds for a bloc, filter entries by relevance to any of the query strings."""
     if not bloc.rss_feeds:
         return []
 
-    topic_words = {w for w in topic.lower().split() if len(w) > 3}
+    topic_words: set[str] = set()
+    for q in queries:
+        topic_words.update(w for w in q.lower().split() if len(w) > 3)
 
     async def parse_one(feed_url: str) -> list[str]:
         try:
