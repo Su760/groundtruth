@@ -117,6 +117,7 @@ def run_translation_layer(state: dict) -> dict:
                     _translate_text_async(content, lang, timeout=8.0)
                     for content, lang, _ in to_translate
                 ])
+            # Safe: run_translation_layer is a sync LangGraph node, never invoked from an async context.
             translated_results = asyncio.run(_run_translations())
             for (content, lang, url), translated in zip(to_translate, translated_results):
                 if translated and translated != content:
