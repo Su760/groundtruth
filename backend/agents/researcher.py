@@ -11,14 +11,42 @@ from .gdelt_fetcher import get_gdelt_urls
 from .exa_fetcher import exa_search
 
 
+JUNK_DOMAINS = {
+    'youtube.com', 'youtu.be',
+    'facebook.com', 'fb.com', 'm.facebook.com',
+    'instagram.com', 'www.instagram.com',
+    'twitter.com', 'x.com',
+    'reddit.com',
+    'tiktok.com',
+    'pinterest.com',
+    'linkedin.com',
+    'modernghana.com',
+    'middleeasteye.net',
+}
+
+
+def _is_junk_url(url: str) -> bool:
+    try:
+        netloc = urlparse(url).netloc.lower().replace('www.', '')
+        if netloc in JUNK_DOMAINS:
+            return True
+        path = urlparse(url).path.rstrip('/').lower()
+        if path in ('', '/home', '/index', '/news'):
+            return True
+        return False
+    except Exception:
+        return True
+
+
 MIN_ARTICLES_PER_BLOC = 3
 TARGET_ARTICLES_PER_BLOC = 5
 _HTTP_LIMITS = httpx.Limits(max_connections=50, max_keepalive_connections=20)
 
-RSS_GDELT_TIMEOUT = 20.0
+RSS_GDELT_TIMEOUT = 10.0
 FETCH_TIMEOUT = 20.0
 FALLBACK_TIMEOUT = 15.0
 BLOC_TOTAL_BUDGET = 50.0
+_GDELT_SEMAPHORE = asyncio.Semaphore(3)
 
 
 # ---------------------------------------------------------------------------
@@ -69,7 +97,7 @@ async def _tavily_fallback_async(
     articles: list[Article] = []
     for r in raw:
         url = r.get('url', '')
-        if not url:
+        if not url or _is_junk_url(url):
             continue
         domain = urlparse(url).netloc.replace('www.', '')
         body = r.get('content', '')[:8000]
@@ -113,6 +141,8 @@ async def _exa_or_tavily_fallback(
 
         articles: list[Article] = []
         for r in exa_results:
+            if _is_junk_url(r['url']):
+                continue
             content = r.get('content', '')
             if len(content) < 200:
                 continue
@@ -143,11 +173,15 @@ async def _research_bloc(
     queries: list[str],
 ) -> list[Article]:
     """Get articles for one bloc: RSS + GDELT primary, Exa/Tavily fallback."""
+    async def _gdelt_throttled():
+        async with _GDELT_SEMAPHORE:
+            return await get_gdelt_urls(client, bloc, queries)
+
     try:
         rss_urls, gdelt_urls = await asyncio.wait_for(
             asyncio.gather(
                 get_rss_urls(bloc, queries),
-                get_gdelt_urls(client, bloc, queries),
+                _gdelt_throttled(),
             ),
             timeout=RSS_GDELT_TIMEOUT,
         )
@@ -159,7 +193,7 @@ async def _research_bloc(
     seen: set[str] = set()
     candidate_urls: list[str] = []
     for u in rss_urls + gdelt_urls:
-        if u and u not in seen:
+        if u and u not in seen and not _is_junk_url(u):
             seen.add(u)
             candidate_urls.append(u)
             if len(candidate_urls) >= max_candidates:
