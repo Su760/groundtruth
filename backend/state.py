@@ -20,3 +20,4 @@ class GroundTruthState(TypedDict):
     sources: List[dict]            # [{title, url, agent}] — from Researcher + ContextHistorian
     final_report: str
     disclaimer: str
+    patterns_analysis: Optional[dict]     # from PatternsAnalyst: {alignment_clusters, fault_lines, conspicuous_absences, dominant_technique, one_sentence_meta}

@@ -16,6 +16,7 @@ from backend.agents.perspective_analyst import run_perspective_analyst
 from backend.agents.propaganda_mapper import run_propaganda_mapper
 from backend.agents.fact_checker import run_fact_checker
 from backend.agents.synthesizer import run_synthesizer
+from backend.agents.patterns_analyst import run_patterns_analyst
 
 
 def build_graph():
@@ -30,6 +31,7 @@ def build_graph():
     graph.add_node("propaganda_mapper", run_propaganda_mapper)
     graph.add_node("fact_checker", run_fact_checker)
     graph.add_node("synthesizer", run_synthesizer)
+    graph.add_node("patterns_analyst", run_patterns_analyst)
 
     graph.set_entry_point("planner")
     graph.add_edge("planner", "researcher")
@@ -40,7 +42,8 @@ def build_graph():
     graph.add_edge("perspective_analyst", "propaganda_mapper")
     graph.add_edge("propaganda_mapper", "fact_checker")
     graph.add_edge("fact_checker", "synthesizer")
-    graph.add_edge("synthesizer", END)
+    graph.add_edge("synthesizer", "patterns_analyst")
+    graph.add_edge("patterns_analyst", END)
 
     return graph.compile()
 

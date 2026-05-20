@@ -43,6 +43,7 @@ AGENT_LABELS = {
     "propaganda_mapper": "Propaganda Mapper",
     "fact_checker": "Fact Checker",
     "synthesizer": "Synthesizer",
+    "patterns_analyst": "Patterns Analyst",
 }
 
 
